@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Projects\\\\Efet\\\\Apps\\\\PRIME-CLUB-APP\\\\Gym-Management-System\\\\Front-end\" -Recurse -Name)",
+      "Bash(Select-Object -First 100)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Projects\\\\Efet\\\\Apps\\\\PRIME-CLUB-APP\\\\Gym-Management-System\" -Directory)",
+      "Bash(ls \"c:\\\\Projects\\\\Efet\\\\Apps\\\\PRIME-CLUB-APP\\\\Gym-Management-System\" 2>/dev/null | head -20)",
+      "Read(//c/Projects/Efet/Apps/PRIME-CLUB-APP/Gym-Management-System/**)",
+      "Bash(find \"c:\\\\Projects\\\\Efet\\\\Apps\\\\PRIME-CLUB-APP\" -maxdepth 4 -type d \\\\\\( -name \"backend\" -o -name \"server\" -o -name \"api\" \\\\\\) 2>/dev/null)",
+      "Read(//c/Projects/Efet/Apps/PRIME-CLUB-APP/**)"
+    ]
+  }
+}

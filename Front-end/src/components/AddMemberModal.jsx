@@ -25,8 +25,13 @@ function FieldInput({ label, field, type = 'text', placeholder, form, setForm, e
   );
 }
 
-export default function AddMemberModal({ onClose, onAdd }) {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', planId: 'p1', startDate: '2026-05-06' });
+export default function AddMemberModal({ onClose, onAdd, onEdit, editingMember }) {
+  const isEdit = !!editingMember;
+  const [form, setForm] = useState(
+    isEdit
+      ? { name: editingMember.name, email: editingMember.email, phone: editingMember.phone, planId: editingMember.planId, startDate: editingMember.startDate }
+      : { name: '', email: '', phone: '', planId: 'p1', startDate: '2026-05-06' }
+  );
   const [errors, setErrors] = useState({});
   const [step, setStep] = useState(1);
 
@@ -54,7 +59,12 @@ export default function AddMemberModal({ onClose, onAdd }) {
     const start = new Date(form.startDate);
     const expiry = new Date(start);
     expiry.setMonth(expiry.getMonth() + (plan?.durationMonths || 1));
-    onAdd({ id: 'm' + Date.now(), ...form, expiryDate: expiry.toISOString().split('T')[0], status: 'active' });
+    const expiryDate = expiry.toISOString().split('T')[0];
+    if (isEdit) {
+      onEdit({ ...editingMember, ...form, expiryDate, status: new Date(expiryDate) < new Date() ? 'expired' : 'active' });
+    } else {
+      onAdd({ id: 'm' + Date.now(), ...form, expiryDate, status: 'active' });
+    }
     onClose();
   };
 
@@ -73,7 +83,7 @@ export default function AddMemberModal({ onClose, onAdd }) {
         {/* Header */}
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>Add New Member</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>{isEdit ? 'Edit Member' : 'Add New Member'}</h2>
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Step {step} of 2 — {step === 1 ? 'Personal info' : 'Membership plan'}</p>
           </div>
           <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
@@ -142,7 +152,7 @@ export default function AddMemberModal({ onClose, onAdd }) {
           }
           {step === 1
             ? <button onClick={handleNext} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Next →</button>
-            : <button onClick={handleSubmit} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Add Member</button>
+            : <button onClick={handleSubmit} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{isEdit ? 'Save Changes' : 'Add Member'}</button>
           }
         </div>
       </div>

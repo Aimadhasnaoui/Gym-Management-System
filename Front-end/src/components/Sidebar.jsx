@@ -6,6 +6,7 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { path: '/members',   label: 'Members',   icon: 'members'   },
   { path: '/checkin',   label: 'Check-in',  icon: 'checkin'   },
+  { path: '/plans',     label: 'Plans',     icon: 'plans'     },
 ];
 
 export default function Sidebar({ gymName, onLogout }) {
@@ -40,7 +41,7 @@ export default function Sidebar({ gymName, onLogout }) {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '4px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {navItems.map(item => {
-          const active = pathname === item.path;
+          const active = pathname === item.path || (item.path === '/members' && pathname.startsWith('/members'));
           return (
             <button
               key={item.path}

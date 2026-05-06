@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { today, fmtShort } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
@@ -17,6 +18,7 @@ function getMemberStatus(m) {
 export default function MembersPage({ members, plans, setAddMemberOpen }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const navigate = useNavigate();
 
   const filtered = members.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase());
@@ -82,6 +84,7 @@ export default function MembersPage({ members, plans, setAddMemberOpen }) {
           return (
             <div
               key={m.id}
+              onClick={() => navigate(`/members/${m.id}`)}
               style={{
                 display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr',
                 padding: '14px 20px', borderBottom: idx < filtered.length - 1 ? '1px solid var(--border)' : 'none',
