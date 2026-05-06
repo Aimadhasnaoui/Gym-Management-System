@@ -23,11 +23,24 @@ export const INITIAL_MEMBERS = [
 ];
 
 export const INITIAL_CHECKINS = [
-  { id: 'c1', memberId: 'm1', checkedInAt: '2026-05-06T09:15:00' },
-  { id: 'c2', memberId: 'm2', checkedInAt: '2026-05-06T08:30:00' },
-  { id: 'c3', memberId: 'm5', checkedInAt: '2026-05-06T10:45:00' },
-  { id: 'c4', memberId: 'm7', checkedInAt: '2026-05-06T07:00:00' },
-  { id: 'c5', memberId: 'm4', checkedInAt: '2026-05-05T17:20:00' },
-  { id: 'c6', memberId: 'm1', checkedInAt: '2026-05-05T09:00:00' },
-  { id: 'c7', memberId: 'm3', checkedInAt: '2026-05-04T11:00:00' },
+  { id: 'c1',  memberId: 'm1', checkedInAt: '2026-05-06T09:15:00' },
+  { id: 'c2',  memberId: 'm2', checkedInAt: '2026-05-06T08:30:00' },
+  { id: 'c3',  memberId: 'm5', checkedInAt: '2026-05-06T10:45:00' },
+  { id: 'c4',  memberId: 'm7', checkedInAt: '2026-05-06T07:00:00' },
+  { id: 'c5',  memberId: 'm4', checkedInAt: '2026-05-05T17:20:00' },
+  { id: 'c6',  memberId: 'm1', checkedInAt: '2026-05-05T09:00:00' },
+  { id: 'c7',  memberId: 'm3', checkedInAt: '2026-05-04T11:00:00' },
+  // Jordan Kim (m2) — extra history for calendar display
+  { id: 'c8',  memberId: 'm2', checkedInAt: '2026-05-04T08:00:00' },
+  { id: 'c9',  memberId: 'm2', checkedInAt: '2026-05-01T09:10:00' },
+  { id: 'c10', memberId: 'm2', checkedInAt: '2026-04-29T08:45:00' },
+  { id: 'c11', memberId: 'm2', checkedInAt: '2026-04-26T10:00:00' },
+  { id: 'c12', memberId: 'm2', checkedInAt: '2026-04-23T08:30:00' },
+  { id: 'c13', memberId: 'm2', checkedInAt: '2026-04-21T07:50:00' },
+  { id: 'c14', memberId: 'm2', checkedInAt: '2026-04-18T09:15:00' },
+  { id: 'c15', memberId: 'm2', checkedInAt: '2026-04-15T08:00:00' },
+  { id: 'c16', memberId: 'm2', checkedInAt: '2026-04-12T10:30:00' },
+  { id: 'c17', memberId: 'm2', checkedInAt: '2026-04-09T08:20:00' },
+  { id: 'c18', memberId: 'm2', checkedInAt: '2026-04-07T07:00:00' },
+  { id: 'c19', memberId: 'm2', checkedInAt: '2026-04-03T09:00:00' },
 ];

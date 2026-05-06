@@ -1,12 +1,16 @@
 import { today, fmt, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
+import Calendar from '../components/Calendar';
 
 export default function MemberPortal({ members, checkins, plans, onLogout }) {
   const member = members.find(m => m.id === 'm2') || members[0];
   const plan = plans.find(p => p.id === member.planId);
-  const myCheckins = checkins.filter(c => c.memberId === member.id).slice(0, 5);
+  const myCheckins = checkins.filter(c => c.memberId === member.id);
   const daysLeft = Math.ceil((new Date(member.expiryDate) - today) / (1000 * 60 * 60 * 24));
+
+  // Unique dates the member visited (one entry per day)
+  const checkinDates = [...new Set(myCheckins.map(c => c.checkedInAt.split('T')[0]))];
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f3', display: 'flex', flexDirection: 'column' }}>
@@ -34,6 +38,7 @@ export default function MemberPortal({ members, checkins, plans, onLogout }) {
           </div>
         </div>
 
+        {/* Plan + expiry cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
           <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '20px', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 8 }}>Current Plan</div>
@@ -53,14 +58,21 @@ export default function MemberPortal({ members, checkins, plans, onLogout }) {
           </div>
         </div>
 
+        {/* Attendance Calendar */}
+        <div style={{ marginBottom: 20 }}>
+          <Calendar checkinDates={checkinDates} />
+        </div>
+
+        {/* Recent Visits list */}
         <div style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, fontWeight: 600 }}>Recent Visits</span>
+            <span style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: 'var(--muted)' }}>{myCheckins.length} total</span>
           </div>
           {myCheckins.length === 0 ? (
             <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No visits recorded yet</div>
-          ) : myCheckins.map((c, idx) => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: idx < myCheckins.length - 1 ? '1px solid var(--border)' : 'none' }}>
+          ) : myCheckins.slice(0, 5).map((c, idx) => (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: idx < Math.min(myCheckins.length, 5) - 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="checkin" size={16} color="oklch(0.42 0.14 145)" />
               </div>
