@@ -35,7 +35,10 @@ app.all(/.*/, (req, res, next) => {
 
 app.use((err, req, res, next) => {
   console.log(err.message);
-  res.send(`<h1>${err.message}</h1>`);
+  res.status(404).json({
+    message: `${err.message}`,
+    status: 404,
+  });
 });
 // Start Server
 app.listen(PORT, () => {

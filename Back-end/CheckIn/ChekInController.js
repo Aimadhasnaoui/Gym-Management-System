@@ -2,7 +2,7 @@ import CheckIn from "./Checkin.js";
 import { cathFunction } from "../utils/CathFunction.js";
 
 export const addCheckIn = cathFunction(async (req, res, next) => {
-    const checkIn = await CheckIn.create(req.body);
+    const checkIn = await CheckIn.create(req.body).populate("MemberId","FullName");
     res.status(201).json({ success: true, data: checkIn });
 });
 
@@ -13,12 +13,12 @@ export const editCheckIn = cathFunction(async (req, res, next) => {
 });
 
 export const getCheckIn = cathFunction(async (req, res, next) => {
-    const checkIns = await CheckIn.find().populate("MemberId");
+    const checkIns = await CheckIn.find().populate("MemberId","FullName");
     res.status(200).json({ success: true, data: checkIns });
 });
 
 export const getCheckInById = cathFunction(async (req, res, next) => {
-    const checkIn = await CheckIn.findById(req.params.id).populate("MemberId");
+    const checkIn = await CheckIn.findById(req.params.id).populate("MemberId", "FullName");
     if (!checkIn) return next(new Error("Check-in not found",404));
     res.status(200).json({ success: true, data: checkIn });
 });
