@@ -7,6 +7,7 @@ import MemberRouter from "./Members/MemberRouter.js";
 import PlanRouter from "./Plans/PlanRouter.js";
 import CheckInRouter from "./CheckIn/CheckInRouter.js";
 import { Login } from "./User/UserController.js";
+import { verifyToken } from "./utils/verifyToken.js";
 dotenv.config();
 mongoose
   .connect(process.env.DatabaseConectionString)
@@ -24,10 +25,10 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/Login", Login);
-app.use("/User", UserRouter);
-app.use("/Member", MemberRouter);
-app.use("/Plan", PlanRouter);
-app.use("/CheckIn", CheckInRouter);
+app.use("/User",verifyToken, UserRouter);
+app.use("/Member", verifyToken, MemberRouter);
+app.use("/Plan", verifyToken, PlanRouter);
+app.use("/CheckIn", verifyToken, CheckInRouter);
 
 app.all(/.*/, (req, res, next) => {
   next(new Error(`${req.url} : can't find this url`, 404));

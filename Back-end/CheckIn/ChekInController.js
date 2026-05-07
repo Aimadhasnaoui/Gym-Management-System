@@ -13,7 +13,20 @@ export const editCheckIn = cathFunction(async (req, res, next) => {
 });
 
 export const getCheckIn = cathFunction(async (req, res, next) => {
-    const checkIns = await CheckIn.find().populate("MemberId","FullName");
+    let filter = {}
+    if(req.query.check === 'today'){
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        filter.CheckIn = {
+            $gte: startOfDay,
+            $lte: endOfDay
+        };
+    }
+    const checkIns = await CheckIn.find(filter).populate("MemberId","FullName");
     res.status(200).json({ success: true, data: checkIns });
 });
 

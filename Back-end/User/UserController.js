@@ -1,5 +1,6 @@
 import User from "./User.js";
 import { cathFunction } from "../utils/CathFunction.js";
+import jwt from "jsonwebtoken";
 
 export const addUser = cathFunction(async (req, res, next) => {
     const user = await User.create(req.body);
@@ -35,5 +36,10 @@ export const Login = cathFunction(async (req, res, next) => {
     if (!user) return next(new Error("User not found"));
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return next(new Error("Invalid credentials"));
-    res.status(200).json({ success: true, data: user });
+    
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret123', {
+        expiresIn: '30d'
+    });
+    
+    res.status(200).json({ success: true, token, data: user });
 });
