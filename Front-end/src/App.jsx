@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { INITIAL_MEMBERS, INITIAL_CHECKINS, PLANS } from './data/mockData';
 import PlansPage from './pages/PlansPage';
@@ -30,10 +30,20 @@ export default function App() {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
 
+  useEffect(() => {
+    const stored = localStorage.getItem('auth');
+    const token = localStorage.getItem('token');
+    if (stored && token) setAuth(JSON.parse(stored));
+  }, []);
+
   const isAdmin = auth?.role === 'admin';
   const isMember = auth?.role === 'member';
 
-  const handleLogout = () => setAuth(null);
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth');
+    setAuth(null);
+  };
   const handleAddMember = (m) => setMembers(prev => [m, ...prev]);
   const handleEditMember = (updated) => { setMembers(prev => prev.map(m => m.id === updated.id ? updated : m)); setEditingMember(null); };
 

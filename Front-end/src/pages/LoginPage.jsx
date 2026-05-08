@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
+import api from '../api/index';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -9,22 +10,22 @@ export default function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      if (email === 'admin@fitcore.com' && password === 'admin') {
-        onLogin({ role: 'admin' });
-        navigate('/dashboard');
-      } else if (email === 'member@fitcore.com' && password === 'member') {
-        onLogin({ role: 'member', memberId: 'm4' });
-        navigate('/portal');
-      } else {
-        setError('Invalid email or password');
-        setLoading(false);
-      }
-    }, 800);
+    try {
+      const { token, data: user } = (await api.post('/Login', { email, password })).data;
+      const role = user.role === 'admin' ? 'admin' : 'member';
+      const authData = { role, userId: user._id, name: user.FullName };
+      localStorage.setItem('token', token);
+      localStorage.setItem('auth', JSON.stringify(authData));
+      onLogin(authData);
+      navigate(role === 'admin' ? '/dashboard' : '/portal');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid email or password');
+      setLoading(false);
+    }
   };
 
   return (

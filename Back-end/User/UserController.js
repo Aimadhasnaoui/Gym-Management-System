@@ -1,4 +1,5 @@
 import User from "./User.js";
+import Member from "../Members/Members.js";
 import { cathFunction } from "../utils/CathFunction.js";
 import jwt from "jsonwebtoken";
 
@@ -32,14 +33,18 @@ export const deleteUser = cathFunction(async (req, res, next) => {
 
 export const Login = cathFunction(async (req, res, next) => {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ Email: email });
     if (!user) return next(new Error("User not found"));
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return next(new Error("Invalid credentials"));
-    
+
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret123', {
         expiresIn: '30d'
     });
-    
-    res.status(200).json({ success: true, token, data: user });
+
+    const member = user.role === 'user'
+        ? await Member.findOne({ userId: user._id }).populate('Plan')
+        : null;
+
+    res.status(200).json({ success: true, token, data: user, member });
 });
