@@ -13,6 +13,9 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
     ? members.filter(m => m.name.toLowerCase().includes(query.toLowerCase()))
     : [];
 
+  const hasCheckedInToday = (memberId) =>
+    checkins.some(c => c.memberId === memberId && c.checkedInAt.startsWith(todayStr));
+
   const handleCheckin = (member) => {
     setCheckins(prev => [{ id: 'c' + Date.now(), memberId: member.id, checkedInAt: new Date().toISOString() }, ...prev]);
     setToast(member.name);
@@ -61,6 +64,7 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
           <div>
             {results.map((m, idx) => {
               const expired = new Date(m.expiryDate) < today;
+              const alreadyIn = hasCheckedInToday(m.id);
               return (
                 <div
                   key={m.id}
@@ -74,17 +78,24 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
                       {expired && <span style={{ color: 'oklch(0.50 0.15 25)', marginLeft: 6 }}>· Membership expired</span>}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleCheckin(m)} disabled={expired}
-                    style={{
-                      padding: '8px 18px', borderRadius: 8, border: 'none',
-                      background: expired ? '#e8e8e6' : 'var(--accent)',
-                      color: expired ? 'var(--muted)' : '#fff',
-                      fontSize: 13, fontWeight: 600, cursor: expired ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {expired ? 'Expired' : 'Check In'}
-                  </button>
+                  {alreadyIn ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, background: 'oklch(0.92 0.06 145)', color: 'oklch(0.42 0.14 145)', fontSize: 12.5, fontWeight: 600 }}>
+                      <Icon name="check" size={13} color="oklch(0.42 0.14 145)" />
+                      Checked in today
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleCheckin(m)} disabled={expired}
+                      style={{
+                        padding: '8px 18px', borderRadius: 8, border: 'none',
+                        background: expired ? '#e8e8e6' : 'var(--accent)',
+                        color: expired ? 'var(--muted)' : '#fff',
+                        fontSize: 13, fontWeight: 600, cursor: expired ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {expired ? 'Expired' : 'Check In'}
+                    </button>
+                  )}
                 </div>
               );
             })}

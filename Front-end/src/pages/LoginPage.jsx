@@ -15,10 +15,10 @@ export default function LoginPage({ onLogin }) {
     setLoading(true);
     setTimeout(() => {
       if (email === 'admin@fitcore.com' && password === 'admin') {
-        onLogin('admin');
+        onLogin({ role: 'admin' });
         navigate('/dashboard');
       } else if (email === 'member@fitcore.com' && password === 'member') {
-        onLogin('member');
+        onLogin({ role: 'member', memberId: 'm4' });
         navigate('/portal');
       } else {
         setError('Invalid email or password');

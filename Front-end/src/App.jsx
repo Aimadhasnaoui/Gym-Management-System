@@ -30,6 +30,9 @@ export default function App() {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
 
+  const isAdmin = auth?.role === 'admin';
+  const isMember = auth?.role === 'member';
+
   const handleLogout = () => setAuth(null);
   const handleAddMember = (m) => setMembers(prev => [m, ...prev]);
   const handleEditMember = (updated) => { setMembers(prev => prev.map(m => m.id === updated.id ? updated : m)); setEditingMember(null); };
@@ -49,8 +52,8 @@ export default function App() {
         <Route
           path="/login"
           element={
-            auth === 'admin' ? <Navigate to="/dashboard" replace /> :
-            auth === 'member' ? <Navigate to="/portal" replace /> :
+            isAdmin ? <Navigate to="/dashboard" replace /> :
+            isMember ? <Navigate to="/portal" replace /> :
             <LoginPage onLogin={setAuth} />
           }
         />
@@ -58,7 +61,7 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <DashboardPage members={members} checkins={checkins} setAddMemberOpen={setAddMemberOpen} />
               {memberModal}
@@ -69,7 +72,7 @@ export default function App() {
         <Route
           path="/members"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <MembersPage members={members} plans={plans} setAddMemberOpen={setAddMemberOpen} />
               {memberModal}
@@ -80,7 +83,7 @@ export default function App() {
         <Route
           path="/members/:id"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <MemberProfilePage
                 members={members} plans={plans} checkins={checkins}
@@ -95,7 +98,7 @@ export default function App() {
         <Route
           path="/checkin"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <CheckinPage members={members} checkins={checkins} setCheckins={setCheckins} />
             </AdminLayout>
@@ -105,7 +108,7 @@ export default function App() {
         <Route
           path="/plans"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <PlansPage plans={plans} setPlans={setPlans} />
             </AdminLayout>
@@ -115,12 +118,12 @@ export default function App() {
         <Route
           path="/portal"
           element={
-            auth !== 'member' ? <Navigate to="/login" replace /> :
-            <MemberPortal members={members} checkins={checkins} plans={plans} onLogout={handleLogout} />
+            !isMember ? <Navigate to="/login" replace /> :
+            <MemberPortal memberId={auth.memberId} members={members} checkins={checkins} plans={plans} onLogout={handleLogout} />
           }
         />
 
-        <Route path="/" element={<Navigate to={auth === 'admin' ? '/dashboard' : auth === 'member' ? '/portal' : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={isAdmin ? '/dashboard' : isMember ? '/portal' : '/login'} replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

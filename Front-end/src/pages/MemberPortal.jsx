@@ -3,8 +3,8 @@ import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import Calendar from '../components/Calendar';
 
-export default function MemberPortal({ members, checkins, plans, onLogout }) {
-  const member = members.find(m => m.id === 'm2') || members[0];
+export default function MemberPortal({ memberId, members, checkins, plans, onLogout }) {
+  const member = members.find(m => m.id === memberId) || members[0];
   const plan = plans.find(p => p.id === member.planId);
   const myCheckins = checkins.filter(c => c.memberId === member.id);
   const daysLeft = Math.ceil((new Date(member.expiryDate) - today) / (1000 * 60 * 60 * 24));
