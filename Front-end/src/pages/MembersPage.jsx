@@ -1,28 +1,35 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { today, fmtShort } from '../data/mockData';
+import { fmtShort } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import StatusBadge from '../components/StatusBadge';
 
+const today = new Date();
 const in7 = new Date(today);
-in7.setDate(in7.getDate() + 7);
+in7.setDate(today.getDate() + 7);
 
 function getMemberStatus(m) {
-  const exp = new Date(m.expiryDate);
+  const exp = new Date(m.endDate);
   if (exp < today) return 'expired';
   if (exp <= in7) return 'expiring';
   return 'active';
 }
 
-export default function MembersPage({ members, plans, setAddMemberOpen }) {
+export default function MembersPage({ members, setAddMemberOpen }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
 
   const filtered = members.filter(m => {
-    const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'all' || m.status === filter;
+    const status = getMemberStatus(m);
+    const matchSearch =
+      m.FullName.toLowerCase().includes(search.toLowerCase()) ||
+      m.Email.toLowerCase().includes(search.toLowerCase());
+    const matchFilter =
+      filter === 'all' ||
+      (filter === 'active' && status !== 'expired') ||
+      (filter === 'expired' && status === 'expired');
     return matchSearch && matchFilter;
   });
 
@@ -85,43 +92,32 @@ export default function MembersPage({ members, plans, setAddMemberOpen }) {
           ))}
         </div>
 
-        {/* Empty state */}
+        {/* Rows */}
         {filtered.length === 0 ? (
           <div className="px-5 py-12 text-center text-muted text-[13px]">No members found</div>
         ) : filtered.map((m, idx) => {
-          const plan = plans.find(p => p.id === m.planId);
           const status = getMemberStatus(m);
           return (
             <div
-              key={m.id}
-              onClick={() => navigate(`/members/${m.id}`)}
-              className={`grid px-5 py-3.5 items-center cursor-pointer transition-colors hover:bg-[#fafaf9] ${idx < filtered.length - 1 ? 'border-b border-border' : ''
-                }`}
+              key={m._id}
+              onClick={() => navigate(`/members/${m._id}`)}
+              className={`grid px-5 py-3.5 items-center cursor-pointer transition-colors hover:bg-[#fafaf9] ${idx < filtered.length - 1 ? 'border-b border-border' : ''}`}
               style={{ gridTemplateColumns: '2fr 1.5fr 1.5fr 1fr 1fr' }}
             >
-              {/* Member */}
               <div className="flex items-center gap-2.5">
-                <Avatar name={m.name} size={34} />
+                <Avatar name={m.FullName} size={34} />
                 <div>
-                  <div className="text-[13.5px] font-medium text-primary">{m.name}</div>
-                  <div className="text-[11.5px] text-muted">{m.email}</div>
+                  <div className="text-[13.5px] font-medium text-primary">{m.FullName}</div>
+                  <div className="text-[11.5px] text-muted">{m.Email}</div>
                 </div>
               </div>
-
-              {/* Contact */}
               <div className="text-[13px] text-secondary">{m.phone}</div>
-
-              {/* Plan */}
               <div>
                 <span className="text-[12.5px] font-medium bg-accent-light text-accent-fg px-2 py-0.5 rounded-md">
-                  {plan?.name || '—'}
+                  {m.Plan?.name || '—'}
                 </span>
               </div>
-
-              {/* Expires */}
-              <div className="text-[12.5px] font-mono text-secondary">{fmtShort(m.expiryDate)}</div>
-
-              {/* Status */}
+              <div className="text-[12.5px] font-mono text-secondary">{fmtShort(m.endDate)}</div>
               <StatusBadge status={status} />
             </div>
           );

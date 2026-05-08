@@ -1,22 +1,35 @@
 import { useNavigate } from 'react-router-dom';
-import { today, fmtShort, fmtTime } from '../data/mockData';
+import { fmtShort, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
 
+const today = new Date();
+const in7 = new Date(today);
+in7.setDate(today.getDate() + 7);
+
+function getMemberStatus(m) {
+  const exp = new Date(m.endDate);
+  if (exp < today) return 'expired';
+  if (exp <= in7) return 'expiring';
+  return 'active';
+}
+
 export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
   const navigate = useNavigate();
-  const in7 = new Date(today);
-  in7.setDate(in7.getDate() + 7);
 
-  const active = members.filter(m => m.status === 'active');
-  const expired = members.filter(m => m.status === 'expired');
-  const expiring = members.filter(m => {
-    const exp = new Date(m.expiryDate);
-    return m.status === 'active' && exp >= today && exp <= in7;
+  const active   = members.filter(m => getMemberStatus(m) !== 'expired');
+  const expired  = members.filter(m => getMemberStatus(m) === 'expired');
+  const expiring = members.filter(m => getMemberStatus(m) === 'expiring');
+
+  // todayCheckins works with both mock (checkedInAt) and real (CheckIn) field names
+  const todayStr = today.toDateString();
+  const todayCheckins = checkins.filter(c => {
+    const ts = c.CheckIn || c.checkedInAt;
+    return new Date(ts).toDateString() === todayStr;
   });
-  const todayCheckins = checkins.filter(c => c.checkedInAt.startsWith('2026-05-06'));
+
   const alertMembers = [
     ...expiring.map(m => ({ ...m, alertType: 'expiring' })),
     ...expired.map(m => ({ ...m, alertType: 'expired' })),
@@ -28,10 +41,8 @@ export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
       {/* Header */}
       <div className="flex justify-between items-start mb-7">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-slate-900 mb-1">
-            Dashboard
-          </h1>
-          <p className="text-[13px] text-slate-500">Wednesday, May 6, 2026</p>
+          <h1 className="text-[22px] font-bold tracking-tight text-slate-900 mb-1">Dashboard</h1>
+          <p className="text-[13px] text-slate-500">{today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
         <button
           onClick={() => setAddMemberOpen(true)}
@@ -44,10 +55,10 @@ export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
 
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-3.5 mb-7">
-        <StatCard label="Active Members" value={active.length} sub={`${members.length} total`} icon="members" accent />
-        <StatCard label="Expired" value={expired.length} sub="memberships" icon="alert" />
-        <StatCard label="Expiring Soon" value={expiring.length} sub="within 7 days" icon="calendar" />
-        <StatCard label="Today's Check-ins" value={todayCheckins.length} sub="so far today" icon="checkin" />
+        <StatCard label="Active Members"    value={active.length}        sub={`${members.length} total`} icon="members" accent />
+        <StatCard label="Expired"           value={expired.length}       sub="memberships"               icon="alert" />
+        <StatCard label="Expiring Soon"     value={expiring.length}      sub="within 7 days"             icon="calendar" />
+        <StatCard label="Today's Check-ins" value={todayCheckins.length} sub="so far today"              icon="checkin" />
       </div>
 
       {/* Bottom two panels */}
@@ -66,19 +77,18 @@ export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
           </div>
           <div className="py-2">
             {alertMembers.length === 0 ? (
-              <div className="px-5 py-6 text-center text-slate-500 text-[13px]">
-                All memberships are current ✓
-              </div>
+              <div className="px-5 py-6 text-center text-slate-500 text-[13px]">All memberships are current ✓</div>
             ) : alertMembers.map(m => (
               <div
-                key={m.id}
-                className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors cursor-default"
+                key={m._id}
+                onClick={() => navigate(`/members/${m._id}`)}
+                className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                <Avatar name={m.name} size={32} />
+                <Avatar name={m.FullName} size={32} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium truncate text-slate-900">{m.name}</div>
+                  <div className="text-[13px] font-medium truncate text-slate-900">{m.FullName}</div>
                   <div className="text-[11.5px] text-slate-500 mt-0.5">
-                    {m.alertType === 'expired' ? 'Expired' : 'Expires'} {fmtShort(m.expiryDate)}
+                    {m.alertType === 'expired' ? 'Expired' : 'Expires'} {fmtShort(m.endDate)}
                   </div>
                 </div>
                 <StatusBadge status={m.alertType} />
@@ -100,24 +110,21 @@ export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
             </button>
           </div>
           <div className="py-2">
-            {checkins.slice(0, 5).map(c => {
-              const member = members.find(m => m.id === c.memberId);
-              if (!member) return null;
+            {todayCheckins.length === 0 ? (
+              <div className="px-5 py-6 text-center text-slate-500 text-[13px]">No check-ins today yet</div>
+            ) : todayCheckins.slice(0, 5).map((c, idx) => {
+              const ts = c.CheckIn || c.checkedInAt;
+              const memberId = c.MemberId || c.memberId;
+              const m = members.find(mb => mb._id === memberId || mb.id === memberId);
+              if (!m) return null;
               return (
-                <div
-                  key={c.id}
-                  className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors cursor-default"
-                >
-                  <Avatar name={member.name} size={32} />
+                <div key={c._id || c.id || idx} className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
+                  <Avatar name={m.FullName} size={32} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium truncate text-slate-900">{member.name}</div>
-                    <div className="text-[11.5px] text-slate-500 mt-0.5">
-                      {fmtShort(c.checkedInAt)} at {fmtTime(c.checkedInAt)}
-                    </div>
+                    <div className="text-[13px] font-medium truncate text-slate-900">{m.FullName}</div>
+                    <div className="text-[11.5px] text-slate-500 mt-0.5">{fmtShort(ts)} at {fmtTime(ts)}</div>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    {fmtTime(c.checkedInAt)}
-                  </span>
+                  <span className="text-[11px] font-mono text-slate-400">{fmtTime(ts)}</span>
                 </div>
               );
             })}

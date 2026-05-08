@@ -58,7 +58,7 @@ export default function LoginPage({ onLogin }) {
             Demo credentials
           </p>
           <p className="text-[12px] text-[#606066] mb-1">Admin: admin@fitcore.com / admin</p>
-          <p className="text-[12px] text-[#606066]">Member: member@fitcore.com / member</p>
+          <p className="text-[12px] text-[#606066]">Member: morgan.lee@example.com / morgan</p>
         </div>
       </div>
 

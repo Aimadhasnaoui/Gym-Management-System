@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { INITIAL_MEMBERS, INITIAL_CHECKINS, PLANS } from './data/mockData';
+import { INITIAL_CHECKINS } from './data/mockData';
+import { getMembers, createMember, updateMember, deleteMember } from './api/members';
+import { getPlans } from './api/plans';
 import PlansPage from './pages/PlansPage';
 import Sidebar from './components/Sidebar';
 import AddMemberModal from './components/AddMemberModal';
@@ -24,9 +26,9 @@ function AdminLayout({ children, onLogout }) {
 
 export default function App() {
   const [auth, setAuth] = useState(null);
-  const [members, setMembers] = useState(INITIAL_MEMBERS);
+  const [members, setMembers] = useState([]);
   const [checkins, setCheckins] = useState(INITIAL_CHECKINS);
-  const [plans, setPlans] = useState(PLANS);
+  const [plans, setPlans] = useState([]);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
 
@@ -36,6 +38,13 @@ export default function App() {
     if (stored && token) setAuth(JSON.parse(stored));
   }, []);
 
+  useEffect(() => {
+    if (auth?.role !== 'admin') return;
+    Promise.all([getMembers(), getPlans()])
+      .then(([m, p]) => { setMembers(m); setPlans(p); })
+      .catch(console.error);
+  }, [auth]);
+
   const isAdmin = auth?.role === 'admin';
   const isMember = auth?.role === 'member';
 
@@ -44,8 +53,22 @@ export default function App() {
     localStorage.removeItem('auth');
     setAuth(null);
   };
-  const handleAddMember = (m) => setMembers(prev => [m, ...prev]);
-  const handleEditMember = (updated) => { setMembers(prev => prev.map(m => m.id === updated.id ? updated : m)); setEditingMember(null); };
+
+  const handleAddMember = async (formData) => {
+    const newMember = await createMember(formData);
+    setMembers(prev => [newMember, ...prev]);
+  };
+
+  const handleEditMember = async (id, formData) => {
+    const updated = await updateMember(id, formData);
+    setMembers(prev => prev.map(m => m._id === id ? updated : m));
+    setEditingMember(null);
+  };
+
+  const handleDeleteMember = async (id) => {
+    await deleteMember(id);
+    setMembers(prev => prev.filter(m => m._id !== id));
+  };
 
   const memberModal = addMemberOpen && (
     <AddMemberModal
@@ -53,6 +76,7 @@ export default function App() {
       onAdd={handleAddMember}
       onEdit={handleEditMember}
       editingMember={editingMember}
+      plans={plans}
     />
   );
 
@@ -84,7 +108,7 @@ export default function App() {
           element={
             !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
-              <MembersPage members={members} plans={plans} setAddMemberOpen={setAddMemberOpen} />
+              <MembersPage members={members} setAddMemberOpen={setAddMemberOpen} />
               {memberModal}
             </AdminLayout>
           }
@@ -96,8 +120,8 @@ export default function App() {
             !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <MemberProfilePage
-                members={members} plans={plans} checkins={checkins}
-                setMembers={setMembers}
+                members={members} checkins={checkins}
+                onDeleteMember={handleDeleteMember}
                 onEditMember={(m) => { setEditingMember(m); setAddMemberOpen(true); }}
               />
               {memberModal}

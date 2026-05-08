@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { today, fmt, fmtTime } from '../data/mockData';
+import { fmt, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 
-const todayStr = '2026-05-06';
-
-const todayLabel = new Date(todayStr).toLocaleDateString('en-US', {
-  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-});
+const today = new Date();
+const todayStr = today.toDateString();
+const todayLabel = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
 export default function CheckinPage({ members, checkins, setCheckins }) {
   const [query, setQuery] = useState('');
@@ -15,27 +13,34 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
   const [flashId, setFlashId] = useState(null);
 
   const filtered = query.length > 0
-    ? members.filter(m => m.name.toLowerCase().includes(query.toLowerCase()))
+    ? members.filter(m => m.FullName.toLowerCase().includes(query.toLowerCase()))
     : members;
 
   const hasCheckedInToday = (memberId) =>
-    checkins.some(c => c.memberId === memberId && c.checkedInAt.startsWith(todayStr));
+    checkins.some(c => {
+      const id = c.MemberId || c.memberId;
+      const ts = c.CheckIn || c.checkedInAt;
+      return id === memberId && new Date(ts).toDateString() === todayStr;
+    });
 
   const handleCheckin = (member) => {
     setCheckins(prev => [
-      { id: 'c' + Date.now(), memberId: member.id, checkedInAt: new Date().toISOString() },
+      { _id: 'c' + Date.now(), MemberId: member._id, CheckIn: new Date().toISOString() },
       ...prev,
     ]);
-    setFlashId(member.id);
-    setToast(member.name);
+    setFlashId(member._id);
+    setToast(member.FullName);
     setTimeout(() => setFlashId(null), 700);
     setTimeout(() => setToast(null), 3000);
   };
 
-  const todayCheckins = checkins.filter(c => c.checkedInAt.startsWith(todayStr));
+  const todayCheckins = checkins.filter(c => {
+    const ts = c.CheckIn || c.checkedInAt;
+    return new Date(ts).toDateString() === todayStr;
+  });
 
   return (
-    <div className="bg-app flex flex-col ">
+    <div className="bg-app flex flex-col">
 
       {/* Toast */}
       {toast && (
@@ -66,7 +71,7 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
         </div>
       </div>
 
-      {/* Search / filter */}
+      {/* Search */}
       <div className="px-9 pt-5">
         <div className="flex items-center gap-2.5 bg-surface border border-border rounded-xl px-4 py-3 focus-within:border-accent transition-colors">
           <Icon name="search" size={15} color="#8a8a8a" />
@@ -82,44 +87,39 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
         </div>
       </div>
 
-      {/* Body — grid + log */}
+      {/* Body */}
       <div className="grid grid-cols-[1fr_280px] gap-5 px-9 pt-5 pb-9 flex-1 items-start">
 
         {/* Member grid */}
         <div className="grid grid-cols-[repeat(auto-fill,minmax(165px,1fr))] gap-2.5">
           {filtered.length === 0 ? (
-            <div className="col-span-full py-16 text-center text-muted text-[14px]">
-              No members match "{query}"
-            </div>
+            <div className="col-span-full py-16 text-center text-muted text-[14px]">No members match "{query}"</div>
           ) : filtered.map((m, i) => {
-            const expired = new Date(m.expiryDate) < today;
-            const alreadyIn = hasCheckedInToday(m.id);
-            const isFlashing = flashId === m.id;
+            const expired = new Date(m.endDate) < today;
+            const alreadyIn = hasCheckedInToday(m._id);
+            const isFlashing = flashId === m._id;
 
             return (
               <div
-                key={m.id}
-                className={`bg-surface border rounded-xl px-3.5 pt-[18px] pb-3.5 flex flex-col items-center gap-2.5 transition-all ${isFlashing ? 'border-green-300 bg-green-50'
-                    : alreadyIn ? 'border-green-200 bg-green-50/60'
-                      : 'border-border hover:border-[#d0cdc8] hover:shadow-sm'
-                  } ${expired ? 'opacity-45' : ''}`}
+                key={m._id}
+                className={`bg-surface border rounded-xl px-3.5 pt-[18px] pb-3.5 flex flex-col items-center gap-2.5 transition-all ${
+                  isFlashing   ? 'border-green-300 bg-green-50' :
+                  alreadyIn    ? 'border-green-200 bg-green-50/60' :
+                                 'border-border hover:border-[#d0cdc8] hover:shadow-sm'
+                } ${expired ? 'opacity-45' : ''}`}
                 style={{ animationDelay: `${Math.min(i * 25, 250)}ms` }}
               >
-                <Avatar name={m.name} size={42} />
+                <Avatar name={m.FullName} size={42} />
                 <div className="w-full text-center">
-                  <div className="text-[13px] font-semibold text-primary truncate">{m.name}</div>
+                  <div className="text-[13px] font-semibold text-primary truncate">{m.FullName}</div>
                   <div className={`text-[10.5px] font-mono mt-0.5 ${expired ? 'text-danger' : 'text-muted'}`}>
-                    {expired ? '· expired ·' : `exp. ${fmt(m.expiryDate)}`}
+                    {expired ? '· expired ·' : `exp. ${fmt(m.endDate)}`}
                   </div>
                 </div>
                 {alreadyIn ? (
-                  <button className="w-full py-2 rounded-lg border-0 bg-green-100 text-green-700 text-[12px] font-semibold cursor-default">
-                    ✓ Checked in
-                  </button>
+                  <button className="w-full py-2 rounded-lg border-0 bg-green-100 text-green-700 text-[12px] font-semibold cursor-default">✓ Checked in</button>
                 ) : expired ? (
-                  <button className="w-full py-2 rounded-lg border-0 bg-app text-muted text-[12px] font-semibold cursor-not-allowed" disabled>
-                    Expired
-                  </button>
+                  <button className="w-full py-2 rounded-lg border-0 bg-app text-muted text-[12px] font-semibold cursor-not-allowed" disabled>Expired</button>
                 ) : (
                   <button
                     onClick={() => handleCheckin(m)}
@@ -143,16 +143,18 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
             {todayCheckins.length === 0 ? (
               <div className="px-[18px] py-9 text-center text-muted text-[13px]">No visits yet</div>
             ) : todayCheckins.map((c, idx) => {
-              const m = members.find(mb => mb.id === c.memberId);
+              const memberId = c.MemberId || c.memberId;
+              const ts = c.CheckIn || c.checkedInAt;
+              const m = members.find(mb => mb._id === memberId || mb.id === memberId);
               if (!m) return null;
               return (
                 <div
-                  key={c.id}
+                  key={c._id || c.id || idx}
                   className={`flex items-center gap-2.5 px-[18px] py-2.5 ${idx === 0 ? 'animate-fade-up' : ''} ${idx < todayCheckins.length - 1 ? 'border-b border-border' : ''}`}
                 >
-                  <Avatar name={m.name} size={26} />
-                  <span className="flex-1 text-[13px] font-medium text-primary truncate">{m.name}</span>
-                  <span className="text-[11px] font-mono text-muted shrink-0">{fmtTime(c.checkedInAt)}</span>
+                  <Avatar name={m.FullName} size={26} />
+                  <span className="flex-1 text-[13px] font-medium text-primary truncate">{m.FullName}</span>
+                  <span className="text-[11px] font-mono text-muted shrink-0">{fmtTime(ts)}</span>
                 </div>
               );
             })}

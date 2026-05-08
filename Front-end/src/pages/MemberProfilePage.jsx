@@ -1,47 +1,49 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { today, fmt, fmtShort, fmtTime } from '../data/mockData';
+import { fmt, fmtShort, fmtTime } from '../data/mockData';
 import Avatar from '../components/Avatar';
 import StatusBadge from '../components/StatusBadge';
 import Icon from '../components/Icon';
 
+const today = new Date();
 const in7 = new Date(today);
-in7.setDate(in7.getDate() + 7);
+in7.setDate(today.getDate() + 7);
 
 function getMemberStatus(m) {
-  const exp = new Date(m.expiryDate);
+  const exp = new Date(m.endDate);
   if (exp < today) return 'expired';
   if (exp <= in7) return 'expiring';
   return 'active';
 }
 
-function daysRemaining(expiryDate) {
-  return Math.ceil((new Date(expiryDate) - today) / (1000 * 60 * 60 * 24));
+function daysRemaining(endDate) {
+  return Math.ceil((new Date(endDate) - today) / (1000 * 60 * 60 * 24));
 }
 
-export default function MemberProfilePage({ members, plans, checkins, setMembers, onEditMember }) {
+export default function MemberProfilePage({ members, checkins, onDeleteMember, onEditMember }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const member = members.find(m => m.id === id);
+  const member = members.find(m => m._id === id);
 
   if (!member) {
     navigate('/members', { replace: true });
     return null;
   }
 
-  const plan = plans.find(p => p.id === member.planId);
+  const plan = member.Plan;
   const status = getMemberStatus(member);
-  const days = daysRemaining(member.expiryDate);
-  const memberCheckins = checkins
-    .filter(c => c.memberId === member.id)
-    .sort((a, b) => new Date(b.checkedInAt) - new Date(a.checkedInAt));
+  const days = daysRemaining(member.endDate);
 
-  const totalDays = Math.ceil((new Date(member.expiryDate) - new Date(member.startDate)) / (1000 * 60 * 60 * 24));
+  const memberCheckins = checkins
+    .filter(c => (c.MemberId || c.memberId) === member._id)
+    .sort((a, b) => new Date(b.CheckIn || b.checkedInAt) - new Date(a.CheckIn || a.checkedInAt));
+
+  const totalDays = Math.ceil((new Date(member.endDate) - new Date(member.startDate)) / (1000 * 60 * 60 * 24));
   const daysUsed = Math.ceil((today - new Date(member.startDate)) / (1000 * 60 * 60 * 24));
   const progressPct = Math.min(100, Math.max(0, (daysUsed / totalDays) * 100));
 
   const progressColor =
     status === 'expired' ? 'bg-danger/70' :
-      status === 'expiring' ? 'bg-warning' : 'bg-accent';
+    status === 'expiring' ? 'bg-warning' : 'bg-accent';
 
   const progressLabel =
     status === 'expired'
@@ -50,11 +52,11 @@ export default function MemberProfilePage({ members, plans, checkins, setMembers
 
   const progressLabelColor =
     status === 'expired' ? 'text-danger-fg' :
-      status === 'expiring' ? 'text-expiring-fg' : 'text-accent-fg';
+    status === 'expiring' ? 'text-expiring-fg' : 'text-accent-fg';
 
-  function handleDelete() {
-    if (!window.confirm(`Remove ${member.name} from the system?`)) return;
-    setMembers(prev => prev.filter(m => m.id !== id));
+  async function handleDelete() {
+    if (!window.confirm(`Remove ${member.FullName} from the system?`)) return;
+    await onDeleteMember(member._id);
     navigate('/members');
   }
 
@@ -74,14 +76,14 @@ export default function MemberProfilePage({ members, plans, checkins, setMembers
 
       {/* Header card */}
       <div className="bg-surface border border-border rounded-xl p-7 mb-4 flex items-center gap-5">
-        <Avatar name={member.name} size={64} />
+        <Avatar name={member.FullName} size={64} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5 mb-1">
-            <h1 className="text-[20px] font-bold tracking-[-0.03em] text-primary m-0">{member.name}</h1>
+            <h1 className="text-[20px] font-bold tracking-[-0.03em] text-primary m-0">{member.FullName}</h1>
             <StatusBadge status={status} />
           </div>
           <div className="flex gap-5 text-[13px] text-muted">
-            <span>{member.email}</span>
+            <span>{member.Email}</span>
             <span>{member.phone}</span>
           </div>
         </div>
@@ -113,12 +115,10 @@ export default function MemberProfilePage({ members, plans, checkins, setMembers
         {/* Membership card */}
         <div className="bg-surface border border-border rounded-xl px-6 py-[22px]">
           <div className="text-[11px] font-semibold text-muted tracking-[0.04em] uppercase mb-3.5">Membership</div>
-
           <div className="mb-4">
             <span className="text-[15px] font-semibold text-primary">{plan?.name || '—'}</span>
-            {plan && <span className="text-[12.5px] text-muted ml-2">{plan.priceLabel}</span>}
+            {plan && <span className="text-[12.5px] text-muted ml-2">${plan.price}</span>}
           </div>
-
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <div className="text-[11px] text-muted mb-0.5">Start Date</div>
@@ -126,11 +126,9 @@ export default function MemberProfilePage({ members, plans, checkins, setMembers
             </div>
             <div>
               <div className="text-[11px] text-muted mb-0.5">Expiry Date</div>
-              <div className="text-[13px] font-medium font-mono text-primary">{fmt(member.expiryDate)}</div>
+              <div className="text-[13px] font-medium font-mono text-primary">{fmt(member.endDate)}</div>
             </div>
           </div>
-
-          {/* Progress bar */}
           <div>
             <div className="flex justify-between mb-1.5">
               <span className="text-[11px] text-muted">Progress</span>
@@ -157,7 +155,7 @@ export default function MemberProfilePage({ members, plans, checkins, setMembers
             <div className="flex justify-between items-center">
               <span className="text-[13px] text-muted">Last visit</span>
               <span className="text-[13px] font-medium text-primary">
-                {memberCheckins.length > 0 ? fmtShort(memberCheckins[0].checkedInAt) : '—'}
+                {memberCheckins.length > 0 ? fmtShort(memberCheckins[0].CheckIn || memberCheckins[0].checkedInAt) : '—'}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -178,20 +176,23 @@ export default function MemberProfilePage({ members, plans, checkins, setMembers
           <div className="px-6 py-10 text-center text-muted text-[13px]">No check-ins recorded</div>
         ) : (
           <div className="max-h-[320px] overflow-y-auto">
-            {memberCheckins.map((c, idx) => (
-              <div
-                key={c.id}
-                className={`flex items-center gap-3 px-6 py-3 ${idx < memberCheckins.length - 1 ? 'border-b border-border' : ''}`}
-              >
-                <div className="w-[30px] h-[30px] rounded-full bg-accent-light flex items-center justify-center shrink-0">
-                  <Icon name="check" size={14} color="oklch(0.42 0.14 145)" />
+            {memberCheckins.map((c, idx) => {
+              const ts = c.CheckIn || c.checkedInAt;
+              return (
+                <div
+                  key={c._id || c.id || idx}
+                  className={`flex items-center gap-3 px-6 py-3 ${idx < memberCheckins.length - 1 ? 'border-b border-border' : ''}`}
+                >
+                  <div className="w-[30px] h-[30px] rounded-full bg-accent-light flex items-center justify-center shrink-0">
+                    <Icon name="check" size={14} color="oklch(0.42 0.14 145)" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[13px] font-medium text-primary">{fmt(ts)}</div>
+                  </div>
+                  <div className="text-[12.5px] font-mono text-muted">{fmtTime(ts)}</div>
                 </div>
-                <div className="flex-1">
-                  <div className="text-[13px] font-medium text-primary">{fmt(c.checkedInAt)}</div>
-                </div>
-                <div className="text-[12.5px] font-mono text-muted">{fmtTime(c.checkedInAt)}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
