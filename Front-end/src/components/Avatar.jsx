@@ -7,7 +7,7 @@ export default function Avatar({ name, size = 36 }) {
       background: `oklch(0.75 0.12 ${hue})`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.33, fontWeight: 600, color: '#fff',
-      flexShrink: 0, fontFamily: 'DM Sans, sans-serif', letterSpacing: '-0.02em',
+      flexShrink: 0, letterSpacing: '-0.02em',
     }}>
       {initials}
     </div>

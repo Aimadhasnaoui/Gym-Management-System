@@ -1,17 +1,13 @@
 const configs = {
-  active:   { label: 'Active',   bg: 'oklch(0.92 0.06 145)', color: 'oklch(0.42 0.14 145)' },
-  expired:  { label: 'Expired',  bg: 'oklch(0.94 0.04 25)',  color: 'oklch(0.50 0.15 25)'  },
-  expiring: { label: 'Expiring', bg: 'oklch(0.95 0.06 60)',  color: 'oklch(0.52 0.14 60)'  },
+  active: { label: 'Active', bg: 'bg-accent-light', text: 'text-accent-fg' },
+  expired: { label: 'Expired', bg: 'bg-danger-light', text: 'text-danger-fg' },
+  expiring: { label: 'Expiring', bg: 'bg-expiring-light', text: 'text-expiring-fg' },
 };
 
 export default function StatusBadge({ status }) {
   const c = configs[status] || configs.active;
   return (
-    <span style={{
-      display: 'inline-block', padding: '3px 8px', borderRadius: 99,
-      fontSize: 11, fontWeight: 600, letterSpacing: '0.03em',
-      background: c.bg, color: c.color,
-    }}>
+    <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${c.bg} ${c.text}`}>
       {c.label}
     </span>
   );

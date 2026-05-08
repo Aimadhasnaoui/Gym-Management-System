@@ -6,21 +6,16 @@ function FieldInput({ label, field, type = 'text', placeholder, form, setForm, e
   const set = (v) => setForm(f => ({ ...f, [field]: v }));
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>{label}</label>
+      <label className="text-[12px] font-semibold text-secondary block mb-1.5">{label}</label>
       <input
         type={type}
         value={form[field]}
         onChange={e => set(e.target.value)}
         placeholder={placeholder}
-        style={{
-          width: '100%', padding: '10px 12px',
-          border: `1.5px solid ${errors[field] ? 'var(--danger)' : 'var(--border)'}`, borderRadius: 8,
-          fontSize: 13.5, outline: 'none',
-        }}
-        onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-        onBlur={e => e.target.style.borderColor = errors[field] ? 'var(--danger)' : 'var(--border)'}
+        className={`w-full px-3 py-[10px] border-[1.5px] rounded-lg text-[13.5px] outline-none transition-colors bg-surface text-primary ${errors[field] ? 'border-danger' : 'border-border focus:border-accent'
+          }`}
       />
-      {errors[field] && <p style={{ fontSize: 11.5, color: 'var(--danger)', marginTop: 4 }}>{errors[field]}</p>}
+      {errors[field] && <p className="text-[11.5px] text-danger mt-1">{errors[field]}</p>}
     </div>
   );
 }
@@ -70,34 +65,34 @@ export default function AddMemberModal({ onClose, onAdd, onEdit, editingMember }
 
   return (
     <div
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
-      }}
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={onClose}
     >
       <div
-        style={{ background: '#fff', borderRadius: 16, width: 460, boxShadow: '0 24px 64px rgba(0,0,0,0.15)', overflow: 'hidden' }}
+        className="bg-surface rounded-2xl w-[460px] shadow-[0_24px_64px_rgba(0,0,0,0.15)] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="px-6 py-5 border-b border-border flex items-center justify-between">
           <div>
-            <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em' }}>{isEdit ? 'Edit Member' : 'Add New Member'}</h2>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Step {step} of 2 — {step === 1 ? 'Personal info' : 'Membership plan'}</p>
+            <h2 className="text-[15px] font-bold tracking-[-0.02em] text-primary">{isEdit ? 'Edit Member' : 'Add New Member'}</h2>
+            <p className="text-[12px] text-muted mt-0.5">Step {step} of 2 — {step === 1 ? 'Personal info' : 'Membership plan'}</p>
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted)' }}>
-            <Icon name="close" size={18} color="var(--muted)" />
+          <button onClick={onClose} className="border-0 bg-transparent cursor-pointer text-muted">
+            <Icon name="close" size={18} color="#8a8a8a" />
           </button>
         </div>
 
         {/* Progress bar */}
-        <div style={{ height: 3, background: 'var(--border)' }}>
-          <div style={{ height: '100%', width: step === 1 ? '50%' : '100%', background: 'var(--accent)', transition: 'width 0.3s ease' }} />
+        <div className="h-[3px] bg-border">
+          <div
+            className="h-full bg-accent transition-all duration-300 ease-in-out"
+            style={{ width: step === 1 ? '50%' : '100%' }}
+          />
         </div>
 
         {/* Body */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="p-6 flex flex-col gap-4">
           {step === 1 ? (
             <>
               <FieldInput label="Full Name" field="name" placeholder="e.g. Jordan Smith" form={form} setForm={setForm} errors={errors} />
@@ -107,37 +102,41 @@ export default function AddMemberModal({ onClose, onAdd, onEdit, editingMember }
           ) : (
             <>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Select Plan</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label className="text-[12px] font-semibold text-secondary block mb-2">Select Plan</label>
+                <div className="flex flex-col gap-2">
                   {PLANS.map(plan => (
                     <label
                       key={plan.id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
-                        border: `1.5px solid ${form.planId === plan.id ? 'var(--accent)' : 'var(--border)'}`,
-                        background: form.planId === plan.id ? 'var(--accent-light)' : '#fff',
-                        transition: 'all 0.15s',
-                      }}
+                      className={`flex items-center gap-3 px-3.5 py-3 rounded-[10px] cursor-pointer border-[1.5px] transition-all ${form.planId === plan.id
+                          ? 'border-accent bg-accent-light'
+                          : 'border-border bg-surface'
+                        }`}
                     >
-                      <input type="radio" name="plan" value={plan.id} checked={form.planId === plan.id} onChange={() => setForm(f => ({ ...f, planId: plan.id }))} style={{ display: 'none' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{plan.name}</div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)' }}>{plan.durationMonths} month{plan.durationMonths > 1 ? 's' : ''}</div>
+                      <input
+                        type="radio" name="plan" value={plan.id}
+                        checked={form.planId === plan.id}
+                        onChange={() => setForm(f => ({ ...f, planId: plan.id }))}
+                        className="hidden"
+                      />
+                      <div className="flex-1">
+                        <div className="text-[13.5px] font-semibold text-primary">{plan.name}</div>
+                        <div className="text-[12px] text-muted">{plan.durationMonths} month{plan.durationMonths > 1 ? 's' : ''}</div>
                       </div>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: form.planId === plan.id ? 'oklch(0.40 0.14 145)' : 'var(--text-primary)' }}>{plan.priceLabel}</span>
-                      {form.planId === plan.id && <Icon name="check" size={16} color="var(--accent)" />}
+                      <span className={`text-[13.5px] font-bold ${form.planId === plan.id ? 'text-accent-fg' : 'text-primary'}`}>
+                        {plan.priceLabel}
+                      </span>
+                      {form.planId === plan.id && <Icon name="check" size={16} color="oklch(0.62 0.17 145)" />}
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Start Date</label>
+                <label className="text-[12px] font-semibold text-secondary block mb-1.5">Start Date</label>
                 <input
                   type="date"
                   value={form.startDate}
                   onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                  style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13.5, outline: 'none' }}
+                  className="w-full px-3 py-[10px] border border-border rounded-lg text-[13.5px] outline-none focus:border-accent transition-colors bg-surface text-primary"
                 />
               </div>
             </>
@@ -145,14 +144,14 @@ export default function AddMemberModal({ onClose, onAdd, onEdit, editingMember }
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+        <div className="px-6 py-4 border-t border-border flex justify-between gap-2.5">
           {step === 2
-            ? <button onClick={() => setStep(1)} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Back</button>
-            : <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+            ? <button onClick={() => setStep(1)} className="px-5 py-2.5 rounded-lg border border-border bg-transparent text-[13px] font-medium cursor-pointer text-primary">Back</button>
+            : <button onClick={onClose} className="px-5 py-2.5 rounded-lg border border-border bg-transparent text-[13px] font-medium cursor-pointer text-primary">Cancel</button>
           }
           {step === 1
-            ? <button onClick={handleNext} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Next →</button>
-            : <button onClick={handleSubmit} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{isEdit ? 'Save Changes' : 'Add Member'}</button>
+            ? <button onClick={handleNext} className="px-6 py-2.5 rounded-lg border-0 bg-accent text-white text-[13px] font-semibold cursor-pointer hover:bg-accent-dark transition-colors">Next →</button>
+            : <button onClick={handleSubmit} className="px-6 py-2.5 rounded-lg border-0 bg-accent text-white text-[13px] font-semibold cursor-pointer hover:bg-accent-dark transition-colors">{isEdit ? 'Save Changes' : 'Add Member'}</button>
           }
         </div>
       </div>

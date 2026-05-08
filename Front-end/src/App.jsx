@@ -13,9 +13,9 @@ import MemberProfilePage from './pages/MemberProfilePage';
 
 function AdminLayout({ children, onLogout }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="flex h-screen overflow-hidden">
       <Sidebar gymName="FitCore" onLogout={onLogout} />
-      <main style={{ marginLeft: 220, flex: 1, background: '#f5f5f3', minHeight: '100vh', overflow: 'auto' }}>
+      <main className="pl-[220px] flex-1 bg-app h-screen overflow-y-auto">
         {children}
       </main>
     </div>
