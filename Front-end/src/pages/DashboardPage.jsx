@@ -90,11 +90,11 @@ export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
         {/* Recent Check-ins */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="px-5 py-3.5 border-b border-slate-200 flex items-center gap-2">
-            <Icon name="clock" size={14} color="#4f46e5" />
+            <Icon name="clock" size={14} color="#2f9f3d" />
             <span className="text-[13px] font-semibold text-slate-800">Recent Check-ins</span>
             <button
               onClick={() => navigate('/checkin')}
-              className="ml-auto text-[11.5px] text-indigo-600 hover:text-indigo-800 font-medium transition-colors border-none bg-transparent cursor-pointer"
+              className="ml-auto text-[11.5px] text-accent hover:text-accent-dark font-medium transition-colors border-none bg-transparent cursor-pointer"
             >
               View all →
             </button>
