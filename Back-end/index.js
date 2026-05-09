@@ -45,7 +45,6 @@ app.all(/.*/, (req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-  console.log(err.message);
   res.status(404).json({
     message: `${err.message}`,
     status: 404,
