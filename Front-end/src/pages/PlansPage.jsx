@@ -1,32 +1,38 @@
 import { useState } from 'react';
 import Icon from '../components/Icon';
+import { createPlan, updatePlan, deletePlan } from '../api/plans';
 
-const emptyForm = { name: '', durationMonths: '', priceLabel: '' };
+const emptyForm = { name: '', duration: '', price: '' };
 
 function PlanModal({ initial, onSave, onClose }) {
-  const [form, setForm] = useState(initial || emptyForm);
+  const [form, setForm] = useState(
+    initial ? { name: initial.name, duration: String(initial.duration), price: String(initial.price) } : emptyForm
+  );
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Name is required';
-    if (!form.durationMonths || isNaN(form.durationMonths) || Number(form.durationMonths) < 1) e.durationMonths = 'Enter a valid duration';
-    if (!form.priceLabel.trim()) e.priceLabel = 'Price label is required';
+    if (!form.duration || isNaN(form.duration) || Number(form.duration) < 1) e.duration = 'Enter a valid duration';
+    if (!form.price || isNaN(form.price) || Number(form.price) < 0) e.price = 'Enter a valid price';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    onSave({ ...form, durationMonths: Number(form.durationMonths) });
+    setSaving(true);
+    await onSave({ name: form.name.trim(), duration: Number(form.duration), price: Number(form.price) });
+    setSaving(false);
   };
 
   const fields = [
     { label: 'Plan Name', field: 'name', placeholder: 'e.g. Monthly Basic', type: 'text' },
-    { label: 'Duration (months)', field: 'durationMonths', placeholder: 'e.g. 1', type: 'number' },
-    { label: 'Price Label', field: 'priceLabel', placeholder: 'e.g. $39/mo', type: 'text' },
+    { label: 'Duration (months)', field: 'duration', placeholder: 'e.g. 1', type: 'number' },
+    { label: 'Price ($)', field: 'price', placeholder: 'e.g. 39', type: 'number' },
   ];
 
   return (
@@ -77,9 +83,10 @@ function PlanModal({ initial, onSave, onClose }) {
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2.5 rounded-lg border-0 bg-accent text-white text-[13px] font-semibold cursor-pointer hover:bg-accent-dark transition-colors"
+            disabled={saving}
+            className="px-6 py-2.5 rounded-lg border-0 bg-accent text-white text-[13px] font-semibold cursor-pointer hover:bg-accent-dark transition-colors disabled:opacity-60"
           >
-            {initial ? 'Save Changes' : 'Create Plan'}
+            {saving ? 'Saving…' : initial ? 'Save Changes' : 'Create Plan'}
           </button>
         </div>
       </div>
@@ -90,19 +97,22 @@ function PlanModal({ initial, onSave, onClose }) {
 export default function PlansPage({ plans, setPlans }) {
   const [modal, setModal] = useState(null);
 
-  const handleAdd = (data) => {
-    setPlans(prev => [...prev, { id: 'p' + Date.now(), ...data }]);
+  const handleAdd = async (data) => {
+    const newPlan = await createPlan(data);
+    setPlans(prev => [...prev, newPlan]);
     setModal(null);
   };
 
-  const handleEdit = (data) => {
-    setPlans(prev => prev.map(p => p.id === modal.id ? { ...modal, ...data } : p));
+  const handleEdit = async (data) => {
+    const updated = await updatePlan(modal._id, data);
+    setPlans(prev => prev.map(p => p._id === modal._id ? updated : p));
     setModal(null);
   };
 
-  const handleDelete = (plan) => {
+  const handleDelete = async (plan) => {
     if (!window.confirm(`Delete plan "${plan.name}"? Members assigned to it won't be affected.`)) return;
-    setPlans(prev => prev.filter(p => p.id !== plan.id));
+    await deletePlan(plan._id);
+    setPlans(prev => prev.filter(p => p._id !== plan._id));
   };
 
   return (
@@ -138,15 +148,15 @@ export default function PlansPage({ plans, setPlans }) {
           <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
             {plans.map(plan => (
               <div
-                key={plan.id}
+                key={plan._id}
                 className="bg-surface border border-border rounded-xl p-[20px_22px] flex flex-col gap-3.5"
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="text-[14.5px] font-bold text-primary mb-0.5">{plan.name}</div>
-                    <div className="text-[12px] text-muted">{plan.durationMonths} month{plan.durationMonths !== 1 ? 's' : ''}</div>
+                    <div className="text-[12px] text-muted">{plan.duration} month{plan.duration !== 1 ? 's' : ''}</div>
                   </div>
-                  <span className="text-[16px] font-bold text-accent-fg tracking-[-0.02em]">{plan.priceLabel}</span>
+                  <span className="text-[16px] font-bold text-accent-fg tracking-[-0.02em]">${plan.price}</span>
                 </div>
 
                 <div className="flex gap-2">
@@ -162,6 +172,7 @@ export default function PlansPage({ plans, setPlans }) {
                   >
                     Delete
                   </button>
+
                 </div>
               </div>
             ))}
