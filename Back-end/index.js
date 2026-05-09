@@ -2,12 +2,15 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
+
 import UserRouter from "./User/UserRouter.js";
 import MemberRouter from "./Members/MemberRouter.js";
 import PlanRouter from "./Plans/PlanRouter.js";
 import CheckInRouter from "./CheckIn/CheckInRouter.js";
+
 import { Login } from "./User/UserController.js";
 import { verifyToken } from "./utils/verifyToken.js";
+
 dotenv.config();
 mongoose
   .connect(process.env.DatabaseConectionString)
@@ -25,7 +28,7 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/Login", Login);
-app.use("/User",verifyToken, UserRouter);
+app.use("/User", verifyToken, UserRouter);
 app.use("/Member", verifyToken, MemberRouter);
 app.use("/Plan", verifyToken, PlanRouter);
 app.use("/CheckIn", verifyToken, CheckInRouter);

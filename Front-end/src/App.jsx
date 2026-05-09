@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { INITIAL_MEMBERS, INITIAL_CHECKINS, PLANS } from './data/mockData';
+import { INITIAL_CHECKINS } from './data/mockData';
+import { getMembers, createMember, updateMember, deleteMember } from './api/members';
+import { getPlans } from './api/plans';
 import PlansPage from './pages/PlansPage';
 import Sidebar from './components/Sidebar';
 import AddMemberModal from './components/AddMemberModal';
@@ -13,9 +15,9 @@ import MemberProfilePage from './pages/MemberProfilePage';
 
 function AdminLayout({ children, onLogout }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="flex h-screen overflow-hidden">
       <Sidebar gymName="FitCore" onLogout={onLogout} />
-      <main style={{ marginLeft: 220, flex: 1, background: '#f5f5f3', minHeight: '100vh', overflow: 'auto' }}>
+      <main className="pl-[220px] flex-1 bg-app h-screen overflow-y-auto">
         {children}
       </main>
     </div>
@@ -24,15 +26,49 @@ function AdminLayout({ children, onLogout }) {
 
 export default function App() {
   const [auth, setAuth] = useState(null);
-  const [members, setMembers] = useState(INITIAL_MEMBERS);
+  const [members, setMembers] = useState([]);
   const [checkins, setCheckins] = useState(INITIAL_CHECKINS);
-  const [plans, setPlans] = useState(PLANS);
+  const [plans, setPlans] = useState([]);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
 
-  const handleLogout = () => setAuth(null);
-  const handleAddMember = (m) => setMembers(prev => [m, ...prev]);
-  const handleEditMember = (updated) => { setMembers(prev => prev.map(m => m.id === updated.id ? updated : m)); setEditingMember(null); };
+  useEffect(() => {
+    const stored = localStorage.getItem('auth');
+    const token = localStorage.getItem('token');
+    if (stored && token) setAuth(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
+    if (auth?.role !== 'admin') return;
+    Promise.all([getMembers(), getPlans()])
+      .then(([m, p]) => { setMembers(m); setPlans(p); })
+      .catch(console.error);
+  }, [auth]);
+
+  const isAdmin = auth?.role === 'admin';
+  const isMember = auth?.role === 'member';
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth');
+    setAuth(null);
+  };
+
+  const handleAddMember = async (formData) => {
+    const newMember = await createMember(formData);
+    setMembers(prev => [newMember, ...prev]);
+  };
+
+  const handleEditMember = async (id, formData) => {
+    const updated = await updateMember(id, formData);
+    setMembers(prev => prev.map(m => m._id === id ? updated : m));
+    setEditingMember(null);
+  };
+
+  const handleDeleteMember = async (id) => {
+    await deleteMember(id);
+    setMembers(prev => prev.filter(m => m._id !== id));
+  };
 
   const memberModal = addMemberOpen && (
     <AddMemberModal
@@ -40,6 +76,7 @@ export default function App() {
       onAdd={handleAddMember}
       onEdit={handleEditMember}
       editingMember={editingMember}
+      plans={plans}
     />
   );
 
@@ -49,8 +86,8 @@ export default function App() {
         <Route
           path="/login"
           element={
-            auth === 'admin' ? <Navigate to="/dashboard" replace /> :
-            auth === 'member' ? <Navigate to="/portal" replace /> :
+            isAdmin ? <Navigate to="/dashboard" replace /> :
+            isMember ? <Navigate to="/portal" replace /> :
             <LoginPage onLogin={setAuth} />
           }
         />
@@ -58,7 +95,7 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <DashboardPage members={members} checkins={checkins} setAddMemberOpen={setAddMemberOpen} />
               {memberModal}
@@ -69,9 +106,9 @@ export default function App() {
         <Route
           path="/members"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
-              <MembersPage members={members} plans={plans} setAddMemberOpen={setAddMemberOpen} />
+              <MembersPage members={members} setAddMemberOpen={setAddMemberOpen} />
               {memberModal}
             </AdminLayout>
           }
@@ -80,11 +117,11 @@ export default function App() {
         <Route
           path="/members/:id"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <MemberProfilePage
-                members={members} plans={plans} checkins={checkins}
-                setMembers={setMembers}
+                members={members} checkins={checkins}
+                onDeleteMember={handleDeleteMember}
                 onEditMember={(m) => { setEditingMember(m); setAddMemberOpen(true); }}
               />
               {memberModal}
@@ -95,7 +132,7 @@ export default function App() {
         <Route
           path="/checkin"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <CheckinPage members={members} checkins={checkins} setCheckins={setCheckins} />
             </AdminLayout>
@@ -105,7 +142,7 @@ export default function App() {
         <Route
           path="/plans"
           element={
-            auth !== 'admin' ? <Navigate to="/login" replace /> :
+            !isAdmin ? <Navigate to="/login" replace /> :
             <AdminLayout onLogout={handleLogout}>
               <PlansPage plans={plans} setPlans={setPlans} />
             </AdminLayout>
@@ -115,12 +152,12 @@ export default function App() {
         <Route
           path="/portal"
           element={
-            auth !== 'member' ? <Navigate to="/login" replace /> :
-            <MemberPortal members={members} checkins={checkins} plans={plans} onLogout={handleLogout} />
+            !isMember ? <Navigate to="/login" replace /> :
+            <MemberPortal memberId={auth.memberId} members={members} checkins={checkins} plans={plans} onLogout={handleLogout} />
           }
         />
 
-        <Route path="/" element={<Navigate to={auth === 'admin' ? '/dashboard' : auth === 'member' ? '/portal' : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={isAdmin ? '/dashboard' : isMember ? '/portal' : '/login'} replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

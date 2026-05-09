@@ -1,8 +1,63 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@theme {
+  --color-accent: oklch(0.62 0.17 145);
+  --color-accent-light: oklch(0.92 0.06 145);
+  --color-accent-dark: oklch(0.48 0.16 145);
+  --color-accent-fg: oklch(0.42 0.14 145);
+  --color-sidebar: #161618;
+  --color-sidebar-text: #a0a0a0;
+  --color-sidebar-active: #ffffff;
+  --color-surface: #ffffff;
+  --color-border: #e8e8e6;
+  --color-muted: #8a8a8a;
+  --color-app: #f5f5f3;
+  --color-primary: #1a1a1a;
+  --color-secondary: #5a5a5a;
+  --color-danger: oklch(0.62 0.18 25);
+  --color-danger-light: oklch(0.96 0.03 25);
+  --color-danger-border: oklch(0.88 0.07 25);
+  --color-danger-fg: oklch(0.48 0.16 25);
+  --color-warning: oklch(0.72 0.14 60);
+  --color-expiring-light: oklch(0.95 0.06 60);
+  --color-expiring-fg: oklch(0.52 0.14 60);
 
-html, body, #root { height: 100%; }
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.22s ease both;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  /* margin: 0; */
+  /* padding: 0; */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
 
 body {
   font-family: 'DM Sans', sans-serif;
@@ -11,22 +66,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-:root {
-  --accent: oklch(0.62 0.17 145);
-  --accent-light: oklch(0.92 0.06 145);
-  --accent-dark: oklch(0.48 0.16 145);
-  --sidebar-bg: #161618;
-  --sidebar-text: #a0a0a0;
-  --sidebar-active: #ffffff;
-  --surface: #ffffff;
-  --border: #e8e8e6;
-  --muted: #8a8a8a;
-  --danger: oklch(0.62 0.18 25);
-  --warning: oklch(0.72 0.14 60);
-  --text-primary: #1a1a1a;
-  --text-secondary: #5a5a5a;
+input,
+select,
+textarea,
+button {
+  font-family: 'DM Sans', sans-serif;
 }
 
-input, select, textarea, button { font-family: 'DM Sans', sans-serif; }
-
-* { scrollbar-width: thin; scrollbar-color: #d0d0d0 transparent; }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d0d0d0 transparent;
+}

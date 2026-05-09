@@ -3,85 +3,103 @@ import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import Calendar from '../components/Calendar';
 
-export default function MemberPortal({ members, checkins, plans, onLogout }) {
-  const member = members.find(m => m.id === 'm2') || members[0];
+export default function MemberPortal({ memberId, members, checkins, plans, onLogout }) {
+  const member = members.find(m => m.id === memberId) || members[0];
   const plan = plans.find(p => p.id === member.planId);
   const myCheckins = checkins.filter(c => c.memberId === member.id);
   const daysLeft = Math.ceil((new Date(member.expiryDate) - today) / (1000 * 60 * 60 * 24));
+  const isExpiring = daysLeft <= 7;
 
-  // Unique dates the member visited (one entry per day)
   const checkinDates = [...new Set(myCheckins.map(c => c.checkedInAt.split('T')[0]))];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f3', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ background: 'var(--sidebar-bg)', padding: '0 32px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="min-h-screen bg-app flex flex-col">
+
+      {/* Header */}
+      <header className="bg-sidebar h-[60px] px-8 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-[7px] bg-accent flex items-center justify-center shrink-0">
             <Icon name="barbell" size={14} color="#fff" />
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>FitCore</span>
+          <span className="text-[14px] font-bold text-white tracking-[-0.02em]">FitCore</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: 13, color: '#606066' }}>Member Portal</span>
-          <button onClick={onLogout} style={{ fontSize: 12.5, color: '#505054', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Icon name="logout" size={13} color="#505054" /> Sign out
+        <div className="flex items-center gap-4">
+          <span className="text-[13px] text-[#606066]">Member Portal</span>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-1.5 text-[12.5px] text-[#505054] bg-transparent border-0 cursor-pointer hover:text-sidebar-text transition-colors"
+          >
+            <Icon name="logout" size={13} color="currentColor" />
+            Sign out
           </button>
         </div>
       </header>
 
-      <main style={{ flex: 1, padding: '40px 32px', maxWidth: 700, margin: '0 auto', width: '100%' }}>
-        <div style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Avatar name={member.name} size={52} />
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em' }}>Hi, {member.name.split(' ')[0]} 👋</h1>
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Welcome to your member portal</p>
-          </div>
-        </div>
-
-        {/* Plan + expiry cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 12, padding: '20px', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 8 }}>Current Plan</div>
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{plan?.name || '—'}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{plan?.priceLabel}</div>
-          </div>
-          <div style={{
-            background: daysLeft <= 7 ? 'oklch(0.96 0.04 25)' : 'var(--accent)',
-            borderRadius: 12, padding: '20px',
-            border: daysLeft <= 7 ? '1px solid oklch(0.88 0.07 25)' : 'none',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: daysLeft <= 7 ? 'oklch(0.50 0.15 25)' : 'rgba(255,255,255,0.7)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 8 }}>Expires</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: daysLeft <= 7 ? 'oklch(0.40 0.15 25)' : '#fff', marginBottom: 4 }}>{fmt(member.expiryDate)}</div>
-            <div style={{ fontSize: 12.5, color: daysLeft <= 7 ? 'oklch(0.52 0.12 25)' : 'rgba(255,255,255,0.7)' }}>
-              {daysLeft <= 0 ? 'Membership expired' : `${daysLeft} days remaining`}
+      {/* Main */}
+      <main className="flex items-center justify-center w-full mx-auto">
+        <div className="max-w-[700px] mx-auto flex-1 px-8 py-10">
+          {/* Greeting */}
+          <div className="flex items-center gap-4 mb-7 mx-auto">
+            <Avatar name={member.name} size={52} />
+            <div>
+              <h1 className="text-[22px] font-bold tracking-[-0.03em] text-primary">Hi, {member.name.split(' ')[0]} 👋</h1>
+              <p className="text-[13px] text-muted mt-0.5">Welcome to your member portal</p>
             </div>
           </div>
-        </div>
 
-        {/* Attendance Calendar */}
-        <div style={{ marginBottom: 20 }}>
-          <Calendar checkinDates={checkinDates} />
-        </div>
+          {/* Plan + Expiry cards */}
+          <div className="grid grid-cols-2 gap-3.5 mb-5">
 
-        {/* Recent Visits list */}
-        <div style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Recent Visits</span>
-            <span style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: 'var(--muted)' }}>{myCheckins.length} total</span>
-          </div>
-          {myCheckins.length === 0 ? (
-            <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No visits recorded yet</div>
-          ) : myCheckins.slice(0, 5).map((c, idx) => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: idx < Math.min(myCheckins.length, 5) - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="checkin" size={16} color="oklch(0.42 0.14 145)" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{fmt(c.checkedInAt)}</div>
-              </div>
-              <span style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: 'var(--muted)' }}>{fmtTime(c.checkedInAt)}</span>
+            {/* Plan card */}
+            <div className="bg-surface rounded-xl p-5 border border-border">
+              <div className="text-[11px] font-semibold text-muted tracking-[0.04em] uppercase mb-2">Current Plan</div>
+              <div className="text-[18px] font-bold text-primary mb-1">{plan?.name || '—'}</div>
+              <div className="text-[12.5px] text-muted">{plan?.priceLabel}</div>
             </div>
-          ))}
+
+            {/* Expiry card — dynamic colors based on days left */}
+            <div className={`rounded-xl p-5 ${isExpiring ? 'bg-danger-light border border-danger-border' : 'bg-accent border-0'}`}>
+              <div className={`text-[11px] font-semibold tracking-[0.04em] uppercase mb-2 ${isExpiring ? 'text-danger-fg' : 'text-white/70'}`}>
+                Expires
+              </div>
+              <div className={`text-[18px] font-bold mb-1 ${isExpiring ? 'text-danger-fg' : 'text-white'}`}>
+                {fmt(member.expiryDate)}
+              </div>
+              <div className={`text-[12.5px] ${isExpiring ? 'text-danger' : 'text-white/70'}`}>
+                {daysLeft <= 0 ? 'Membership expired' : `${daysLeft} days remaining`}
+              </div>
+            </div>
+          </div>
+
+          {/* Calendar */}
+          <div className="mb-5">
+            <Calendar checkinDates={checkinDates} />
+          </div>
+
+          {/* Recent Visits */}
+          <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-primary">Recent Visits</span>
+              <span className="text-[12px] font-mono text-muted">{myCheckins.length} total</span>
+            </div>
+
+            {myCheckins.length === 0 ? (
+              <div className="px-5 py-8 text-center text-muted text-[13px]">No visits recorded yet</div>
+            ) : myCheckins.slice(0, 5).map((c, idx) => (
+              <div
+                key={c.id}
+                className={`flex items-center gap-3.5 px-5 py-3.5 ${idx < Math.min(myCheckins.length, 5) - 1 ? 'border-b border-border' : ''}`}
+              >
+                <div className="w-9 h-9 rounded-lg bg-accent-light flex items-center justify-center shrink-0">
+                  <Icon name="checkin" size={16} color="oklch(0.42 0.14 145)" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[13px] font-medium text-primary">{fmt(c.checkedInAt)}</div>
+                </div>
+                <span className="text-[12px] font-mono text-muted">{fmtTime(c.checkedInAt)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
+import api from '../api/index';
 
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -9,91 +10,108 @@ export default function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      if (email === 'admin@fitcore.com' && password === 'admin') {
-        onLogin('admin');
-        navigate('/dashboard');
-      } else if (email === 'member@fitcore.com' && password === 'member') {
-        onLogin('member');
-        navigate('/portal');
-      } else {
-        setError('Invalid email or password');
-        setLoading(false);
-      }
-    }, 800);
+    try {
+      const { token, data: user } = (await api.post('/Login', { email, password })).data;
+      const role = user.role === 'admin' ? 'admin' : 'member';
+      const authData = { role, userId: user._id, name: user.FullName };
+      localStorage.setItem('token', token);
+      localStorage.setItem('auth', JSON.stringify(authData));
+      onLogin(authData);
+      navigate(role === 'admin' ? '/dashboard' : '/portal');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid email or password');
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: '#f5f5f3' }}>
+    <div className="flex h-screen overflow-hidden bg-app">
+
       {/* Left panel */}
-      <div style={{ width: 420, background: 'var(--sidebar-bg)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '60px 48px' }}>
-        <div style={{ marginBottom: 48 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="barbell" size={18} color="#fff" />
-            </div>
-            <span style={{ fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-0.03em' }}>FitCore</span>
+      <div className="w-[420px] shrink-0 h-screen flex flex-col px-11 py-9 bg-sidebar">
+
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-[10px] bg-accent flex items-center justify-center shrink-0">
+            <Icon name="barbell" size={18} color="#fff" />
           </div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.2, marginBottom: 12 }}>Welcome back.</h1>
-          <p style={{ fontSize: 14, color: '#606066', lineHeight: 1.6 }}>Sign in to manage your gym — members, check-ins, and memberships in one place.</p>
+          <span className="text-[17px] font-bold text-white tracking-[-0.03em]">FitCore</span>
         </div>
-        <div style={{ background: '#1f1f22', borderRadius: 10, padding: '14px 16px', marginTop: 'auto' }}>
-          <p style={{ fontSize: 11.5, color: '#505056', marginBottom: 8, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Demo credentials</p>
-          <p style={{ fontSize: 12, color: '#606066', marginBottom: 4 }}>Admin: admin@fitcore.com / admin</p>
-          <p style={{ fontSize: 12, color: '#606066' }}>Member: member@fitcore.com / member</p>
+
+        {/* Welcome copy — vertically centered */}
+        <div className="flex-1 flex flex-col justify-center">
+          <h1 className="text-[28px] font-bold text-white tracking-[-0.04em] leading-snug mb-3">
+            Welcome back.
+          </h1>
+          <p className="text-[14px] text-[#606066] leading-relaxed">
+            Sign in to manage your gym — members, check-ins, and memberships in one place.
+          </p>
+        </div>
+
+        {/* Demo credentials — pinned to bottom */}
+        <div className="bg-[#1f1f22] rounded-[10px] px-4 py-3.5">
+          <p className="text-[11px] font-semibold tracking-[0.04em] uppercase text-[#505056] mb-2">
+            Demo credentials
+          </p>
+          <p className="text-[12px] text-[#606066] mb-1">Admin: admin@fitcore.com / admin</p>
+          <p className="text-[12px] text-[#606066]">Member: morgan.lee@example.com / morgan</p>
         </div>
       </div>
 
       {/* Right panel */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-        <div style={{ width: '100%', maxWidth: 360 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 6 }}>Sign in to your account</h2>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 28 }}>Enter your credentials to continue</p>
+      <div className="flex-1 flex items-center justify-center p-10 bg-app">
+        <div className="w-full max-w-[360px]">
+          <h2 className="text-[20px] font-bold tracking-[-0.03em] text-primary mb-1.5">
+            Sign in to your account
+          </h2>
+          <p className="text-[13px] text-muted mb-7">Enter your credentials to continue</p>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Email Address</label>
+              <label className="text-[12px] font-semibold text-secondary block mb-1.5">
+                Email Address
+              </label>
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com" required
-                style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13.5, outline: 'none' }}
-                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                className="w-full px-3.5 py-[11px] border border-border rounded-[9px] text-[13.5px] text-primary bg-surface outline-none focus:border-accent transition-colors"
               />
             </div>
+
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Password</label>
+              <label className="text-[12px] font-semibold text-secondary block mb-1.5">
+                Password
+              </label>
               <input
                 type="password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••" required
-                style={{ width: '100%', padding: '11px 14px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13.5, outline: 'none' }}
-                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                className="w-full px-3.5 py-[11px] border border-border rounded-[9px] text-[13.5px] text-primary bg-surface outline-none focus:border-accent transition-colors"
               />
             </div>
 
             {error && (
-              <div style={{ background: 'oklch(0.96 0.03 25)', border: '1px solid oklch(0.88 0.07 25)', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: 'oklch(0.48 0.16 25)', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger-light border border-danger-border text-[12.5px] text-danger-fg">
                 <Icon name="alert" size={13} color="oklch(0.48 0.16 25)" />
                 {error}
               </div>
             )}
 
             <button
-              type="submit" disabled={loading}
-              style={{
-                width: '100%', padding: '12px', borderRadius: 9, border: 'none',
-                background: loading ? 'var(--accent-light)' : 'var(--accent)',
-                color: loading ? 'oklch(0.40 0.14 145)' : '#fff',
-                fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
-              }}
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 rounded-[9px] border-0 text-[14px] font-semibold transition-colors ${loading
+                  ? 'bg-accent-light text-accent-dark cursor-not-allowed'
+                  : 'bg-accent text-white cursor-pointer hover:bg-accent-dark'
+                }`}
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
+
           </form>
         </div>
       </div>

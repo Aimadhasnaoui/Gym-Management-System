@@ -30,6 +30,11 @@ const membershema  = new mongoose.Schema({
         required : true,
         enum : ["active","inactive","Expiring"],
         default : "active"
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
     }
 }, {
     timestamps: true
