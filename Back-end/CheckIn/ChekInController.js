@@ -2,7 +2,8 @@ import CheckIn from "./Checkin.js";
 import { cathFunction } from "../utils/CathFunction.js";
 
 export const addCheckIn = cathFunction(async (req, res, next) => {
-    const checkIn = await CheckIn.create(req.body).populate("MemberId","FullName");
+    const checkIn = await CheckIn.create(req.body);
+    await checkIn.populate("MemberId", "FullName");
     res.status(201).json({ success: true, data: checkIn });
 });
 
