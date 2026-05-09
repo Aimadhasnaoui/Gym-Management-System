@@ -15,13 +15,9 @@ export default function LoginPage({ onLogin }) {
     setError('');
     setLoading(true);
     try {
-      const { token, data: user } = (await api.post('/Login', { email, password })).data;
-      const role = user.role === 'admin' ? 'admin' : 'member';
-      const authData = { role, userId: user._id, name: user.FullName };
-      localStorage.setItem('token', token);
-      localStorage.setItem('auth', JSON.stringify(authData));
+      const { data: authData } = (await api.post('/Login', { email, password })).data;
       onLogin(authData);
-      navigate(role === 'admin' ? '/dashboard' : '/portal');
+      navigate(authData.role === 'admin' ? '/dashboard' : '/portal');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password');
       setLoading(false);
@@ -105,8 +101,8 @@ export default function LoginPage({ onLogin }) {
               type="submit"
               disabled={loading}
               className={`w-full py-3 rounded-[9px] border-0 text-[14px] font-semibold transition-colors ${loading
-                  ? 'bg-accent-light text-accent-dark cursor-not-allowed'
-                  : 'bg-accent text-white cursor-pointer hover:bg-accent-dark'
+                ? 'bg-accent-light text-accent-dark cursor-not-allowed'
+                : 'bg-accent text-white cursor-pointer hover:bg-accent-dark'
                 }`}
             >
               {loading ? 'Signing in…' : 'Sign in'}
