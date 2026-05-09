@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { fmt, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
+import { createCheckin } from '../api/checkins';
 
 const today = new Date();
 const todayStr = today.toDateString();
 const todayLabel = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-export default function CheckinPage({ members, checkins, setCheckins }) {
+export default function CheckinPage({ members, checkins, onCheckin }) {
   const [query, setQuery] = useState('');
   const [toast, setToast] = useState(null);
   const [flashId, setFlashId] = useState(null);
@@ -23,15 +24,17 @@ export default function CheckinPage({ members, checkins, setCheckins }) {
       return id === memberId && new Date(ts).toDateString() === todayStr;
     });
 
-  const handleCheckin = (member) => {
-    setCheckins(prev => [
-      { _id: 'c' + Date.now(), MemberId: member._id, CheckIn: new Date().toISOString() },
-      ...prev,
-    ]);
-    setFlashId(member._id);
-    setToast(member.FullName);
-    setTimeout(() => setFlashId(null), 700);
-    setTimeout(() => setToast(null), 3000);
+  const handleCheckin = async (member) => {
+    try {
+      const newCheckin = await createCheckin(member._id);
+      onCheckin(newCheckin);
+      setFlashId(member._id);
+      setToast(member.FullName);
+      setTimeout(() => setFlashId(null), 700);
+      setTimeout(() => setToast(null), 3000);
+    } catch {
+      // silently ignore — member grid state won't update if API fails
+    }
   };
 
   const todayCheckins = checkins.filter(c => {

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { INITIAL_CHECKINS } from './data/mockData';
 import { getMembers, createMember, updateMember, deleteMember } from './api/members';
 import { getPlans } from './api/plans';
+import { getCheckins } from './api/checkins';
 import api from './api/index';
 import PlansPage from './pages/PlansPage';
 import Sidebar from './components/Sidebar';
@@ -29,7 +29,7 @@ export default function App() {
   const [auth, setAuth] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [members, setMembers] = useState([]);
-  const [checkins, setCheckins] = useState(INITIAL_CHECKINS);
+  const [checkins, setCheckins] = useState([]);
   const [plans, setPlans] = useState([]);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
@@ -43,8 +43,8 @@ export default function App() {
 
   useEffect(() => {
     if (auth?.role !== 'admin') return;
-    Promise.all([getMembers(), getPlans()])
-      .then(([m, p]) => { setMembers(m); setPlans(p); })
+    Promise.all([getMembers(), getPlans(), getCheckins({ check: 'today' })])
+      .then(([m, p, c]) => { setMembers(m); setPlans(p); setCheckins(c); })
       .catch(console.error);
   }, [auth]);
 
@@ -138,7 +138,7 @@ export default function App() {
           element={
             !isAdmin ? <Navigate to="/login" replace /> :
               <AdminLayout onLogout={handleLogout}>
-                <CheckinPage members={members} checkins={checkins} setCheckins={setCheckins} />
+                <CheckinPage members={members} checkins={checkins} onCheckin={c => setCheckins(prev => [c, ...prev])} />
               </AdminLayout>
           }
         />
