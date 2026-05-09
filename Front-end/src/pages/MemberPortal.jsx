@@ -1,26 +1,33 @@
 import { useState, useEffect } from 'react';
-import { today, fmt, fmtTime } from '../data/mockData';
+import { fmt, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import Calendar from '../components/Calendar';
 import api from '../api/index';
+import { getCheckins } from '../api/checkins';
 
-export default function MemberPortal({ memberId, checkins = [], onLogout }) {
+export default function MemberPortal({ memberId, onLogout }) {
   const [member, setMember] = useState(null);
+  const [myCheckins, setMyCheckins] = useState([]);
 
   useEffect(() => {
     if (!memberId) return;
-    api.get(`/Member/${memberId}`).then(r => setMember(r.data.data)).catch(console.error);
+    Promise.all([
+      api.get(`/Member/${memberId}`).then(r => r.data.data),
+      getCheckins({ memberId }),
+    ]).then(([m, c]) => { setMember(m); setMyCheckins(c); }).catch(console.error);
   }, [memberId]);
 
   if (!member) return null;
 
   const plan = member.Plan;
-  const myCheckins = checkins.filter(c => c.memberId === String(member._id));
-  const daysLeft = Math.ceil((new Date(member.endDate) - today) / (1000 * 60 * 60 * 24));
-  const isExpiring = daysLeft <= 7;
+  const today = new Date();
+  const daysLeft = member.endDate
+    ? Math.ceil((new Date(member.endDate) - today) / (1000 * 60 * 60 * 24))
+    : null;
+  const isExpiring = daysLeft !== null && daysLeft <= 7;
 
-  const checkinDates = [...new Set(myCheckins.map(c => c.checkedInAt.split('T')[0]))];
+  const checkinDates = [...new Set(myCheckins.map(c => new Date(c.CheckIn).toISOString().split('T')[0]))];
 
   return (
     <div className="min-h-screen bg-app flex flex-col">
@@ -73,10 +80,10 @@ export default function MemberPortal({ memberId, checkins = [], onLogout }) {
                 Expires
               </div>
               <div className={`text-[18px] font-bold mb-1 ${isExpiring ? 'text-danger-fg' : 'text-white'}`}>
-                {fmt(member.endDate)}
+                {member.endDate ? fmt(member.endDate) : '—'}
               </div>
               <div className={`text-[12.5px] ${isExpiring ? 'text-danger' : 'text-white/70'}`}>
-                {daysLeft <= 0 ? 'Membership expired' : `${daysLeft} days remaining`}
+                {daysLeft === null ? '' : daysLeft <= 0 ? 'Membership expired' : `${daysLeft} days remaining`}
               </div>
             </div>
           </div>
@@ -97,16 +104,16 @@ export default function MemberPortal({ memberId, checkins = [], onLogout }) {
               <div className="px-5 py-8 text-center text-muted text-[13px]">No visits recorded yet</div>
             ) : myCheckins.slice(0, 5).map((c, idx) => (
               <div
-                key={c.id}
+                key={c._id}
                 className={`flex items-center gap-3.5 px-5 py-3.5 ${idx < Math.min(myCheckins.length, 5) - 1 ? 'border-b border-border' : ''}`}
               >
                 <div className="w-9 h-9 rounded-lg bg-accent-light flex items-center justify-center shrink-0">
                   <Icon name="checkin" size={16} color="oklch(0.42 0.14 145)" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[13px] font-medium text-primary">{fmt(c.checkedInAt)}</div>
+                  <div className="text-[13px] font-medium text-primary">{fmt(c.CheckIn)}</div>
                 </div>
-                <span className="text-[12px] font-mono text-muted">{fmtTime(c.checkedInAt)}</span>
+                <span className="text-[12px] font-mono text-muted">{fmtTime(c.CheckIn)}</span>
               </div>
             ))}
           </div>

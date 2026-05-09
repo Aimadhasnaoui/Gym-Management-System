@@ -157,7 +157,7 @@ export default function App() {
           path="/portal"
           element={
             !isMember ? <Navigate to="/login" replace /> :
-              <MemberPortal memberId={auth.memberId} checkins={checkins} onLogout={handleLogout} />
+              <MemberPortal memberId={auth.memberId} onLogout={handleLogout} />
           }
         />
 

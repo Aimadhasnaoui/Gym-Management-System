@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { today } from '../data/mockData';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+const now = new Date();
+
 export default function Calendar({ checkinDates }) {
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
 
   const checkinSet = new Set(checkinDates);
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = now.toISOString().split('T')[0];
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -78,15 +79,15 @@ export default function Calendar({ checkinDates }) {
               <div
                 key={dateStr}
                 className={`aspect-square flex flex-col items-center justify-center rounded-lg relative border-[1.5px] ${isCheckin
-                    ? 'bg-accent border-transparent'
-                    : isToday
-                      ? 'bg-accent-light border-accent'
-                      : 'bg-transparent border-transparent'
+                  ? 'bg-accent border-transparent'
+                  : isToday
+                    ? 'bg-accent-light border-accent'
+                    : 'bg-transparent border-transparent'
                   }`}
               >
                 <span className={`text-[13px] leading-none ${isCheckin ? 'font-bold text-white'
-                    : isToday ? 'font-bold text-accent-fg'
-                      : 'font-normal text-primary'
+                  : isToday ? 'font-bold text-accent-fg'
+                    : 'font-normal text-primary'
                   }`}>
                   {day}
                 </span>
