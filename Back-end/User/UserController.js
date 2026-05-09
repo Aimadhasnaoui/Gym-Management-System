@@ -31,8 +31,8 @@ export const deleteUser = cathFunction(async (req, res, next) => {
 });
 
 export const Login = cathFunction(async (req, res, next) => {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const { Email, password } = req.body;
+    const user = await User.findOne({ Email });
     if (!user) return next(new Error("User not found"));
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return next(new Error("Invalid credentials"));
