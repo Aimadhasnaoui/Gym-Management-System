@@ -36,6 +36,11 @@ export const getCheckInById = cathFunction(async (req, res, next) => {
     if (!checkIn) return next(new Error("Check-in not found", 404));
     res.status(200).json({ success: true, data: checkIn });
 });
+export const getCheckInByMemberId = cathFunction(async (req, res, next) => {
+    const checkIn = await CheckIn.find({ MemberId: req.params.id }).populate("MemberId", "FullName");
+    if (!checkIn) return next(new Error("Check-in not found", 404));
+    res.status(200).json({ success: true, data: checkIn });
+});
 
 export const deleteCheckIn = cathFunction(async (req, res, next) => {
     const checkIn = await CheckIn.findByIdAndDelete(req.params.id);
