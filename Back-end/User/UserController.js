@@ -50,7 +50,7 @@ export const Login = cathFunction(async (req, res, next) => {
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    const member = user.role === 'user'
+    const member = user.role === 'member'
         ? await Member.findOne({ userId: user._id }).populate('Plan')
         : null;
 
@@ -71,7 +71,7 @@ export const Me = cathFunction(async (req, res, next) => {
     if (!user) return next(new Error("User not found"));
 
     let memberId = null;
-    if (user.role === 'user') {
+    if (user.role === 'member') {
         const member = await Member.findOne({ userId: user._id }).select('_id');
         memberId = member?._id ?? null;
     }
