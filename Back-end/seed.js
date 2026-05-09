@@ -50,7 +50,7 @@ const seed = async () => {
   ];
 
   const [uAlex, uJordan, uSam, uMorgan, uCasey, uRiley, uDrew, uQuinn] =
-    await Promise.all(memberUsersData.map(d => new User({ ...d, role: 'user' }).save()));
+    await Promise.all(memberUsersData.map(d => new User({ ...d, role: 'member' }).save()));
 
   console.log(`Created ${1 + memberUsersData.length} users`);
 

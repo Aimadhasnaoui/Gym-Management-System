@@ -34,17 +34,61 @@ export const deleteUser = cathFunction(async (req, res, next) => {
 export const Login = cathFunction(async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ Email: email });
-    if (!user) return next(new Error("User not found"));
+    if (!user) return next(new Error("Invalid credentials"));
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return next(new Error("Invalid credentials"));
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret123', {
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: '30d'
+    });
+
+    const isProd = process.env.ProjectEnv === 'production';
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     const member = user.role === 'user'
         ? await Member.findOne({ userId: user._id }).populate('Plan')
         : null;
 
-    res.status(200).json({ success: true, token, data: user, member });
+    res.status(200).json({
+        success: true,
+        data: {
+            role: user.role === 'admin' ? 'admin' : 'member',
+            userId: user._id,
+            name: user.FullName,
+            memberId: member?._id ?? null,
+        },
+        member,
+    });
 });
+
+export const Me = cathFunction(async (req, res, next) => {
+    const user = await User.findById(req.user.id).select('FullName role');
+    if (!user) return next(new Error("User not found"));
+
+    let memberId = null;
+    if (user.role === 'user') {
+        const member = await Member.findOne({ userId: user._id }).select('_id');
+        memberId = member?._id ?? null;
+    }
+
+    res.status(200).json({
+        success: true,
+        data: {
+            role: user.role === 'admin' ? 'admin' : 'member',
+            userId: user._id,
+            name: user.FullName,
+            memberId,
+        },
+    });
+});
+
+export const Logout = (req, res) => {
+    const isProd = process.env.ProjectEnv === 'production';
+    res.clearCookie('token', { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax' });
+    res.status(200).json({ success: true });
+};

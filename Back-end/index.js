@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 
 import UserRouter from "./User/UserRouter.js";
@@ -8,7 +9,7 @@ import MemberRouter from "./Members/MemberRouter.js";
 import PlanRouter from "./Plans/PlanRouter.js";
 import CheckInRouter from "./CheckIn/CheckInRouter.js";
 
-import { Login } from "./User/UserController.js";
+import { Login, Me, Logout } from "./User/UserController.js";
 import { verifyToken } from "./utils/verifyToken.js";
 
 dotenv.config();
@@ -24,10 +25,16 @@ const app = express();
 const PORT = process.env.PortProject || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/Login", Login);
+app.get("/auth/me", verifyToken, Me);
+app.post("/auth/logout", Logout);
 app.use("/User", verifyToken, UserRouter);
 app.use("/Member", verifyToken, MemberRouter);
 app.use("/Plan", verifyToken, PlanRouter);
