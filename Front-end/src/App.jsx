@@ -13,6 +13,7 @@ import MembersPage from './pages/MembersPage';
 import CheckinPage from './pages/CheckinPage';
 import MemberPortal from './pages/MemberPortal';
 import MemberProfilePage from './pages/MemberProfilePage';
+import CheckinMembre from './pages/CheckinMembre';
 
 function AdminLayout({ children, onLogout }) {
   return (
@@ -163,6 +164,7 @@ export default function App() {
 
         <Route path="/" element={<Navigate to={isAdmin ? '/dashboard' : isMember ? '/portal' : '/login'} replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/Add/checking" element={<CheckinMembre></CheckinMembre>} />
       </Routes>
     </BrowserRouter>
   );
