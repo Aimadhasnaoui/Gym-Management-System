@@ -1,9 +1,12 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fmtShort, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import StatCard from '../components/StatCard';
 import StatusBadge from '../components/StatusBadge';
+import { getMembers } from '../api/members';
+import { getCheckins } from '../api/checkins';
 
 const today = new Date();
 const in7 = new Date(today);
@@ -16,19 +19,20 @@ function getMemberStatus(m) {
   return 'active';
 }
 
-export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
+export default function DashboardPage({ setAddMemberOpen }) {
   const navigate = useNavigate();
+  const [members, setMembers] = useState([]);
+  const [checkins, setCheckins] = useState([]);
+
+  useEffect(() => {
+    Promise.all([getMembers(), getCheckins({ check: 'today' })])
+      .then(([m, c]) => { setMembers(m); setCheckins(c); })
+      .catch(console.error);
+  }, []);
 
   const active   = members.filter(m => getMemberStatus(m) !== 'expired');
   const expired  = members.filter(m => getMemberStatus(m) === 'expired');
   const expiring = members.filter(m => getMemberStatus(m) === 'expiring');
-
-  // todayCheckins works with both mock (checkedInAt) and real (CheckIn) field names
-  const todayStr = today.toDateString();
-  const todayCheckins = checkins.filter(c => {
-    const ts = c.CheckIn || c.checkedInAt;
-    return new Date(ts).toDateString() === todayStr;
-  });
 
   const alertMembers = [
     ...expiring.map(m => ({ ...m, alertType: 'expiring' })),
@@ -58,7 +62,7 @@ export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
         <StatCard label="Active Members"    value={active.length}        sub={`${members.length} total`} icon="members" accent />
         <StatCard label="Expired"           value={expired.length}       sub="memberships"               icon="alert" />
         <StatCard label="Expiring Soon"     value={expiring.length}      sub="within 7 days"             icon="calendar" />
-        <StatCard label="Today's Check-ins" value={todayCheckins.length} sub="so far today"              icon="checkin" />
+        <StatCard label="Today's Check-ins" value={checkins.length}      sub="so far today"              icon="checkin" />
       </div>
 
       {/* Bottom two panels */}
@@ -110,24 +114,18 @@ export default function DashboardPage({ members, checkins, setAddMemberOpen }) {
             </button>
           </div>
           <div className="py-2">
-            {todayCheckins.length === 0 ? (
+            {checkins.length === 0 ? (
               <div className="px-5 py-6 text-center text-slate-500 text-[13px]">No check-ins today yet</div>
-            ) : todayCheckins.slice(0, 5).map((c, idx) => {
-              const ts = c.CheckIn || c.checkedInAt;
-              const memberId = c.MemberId || c.memberId;
-              const m = members.find(mb => mb._id === memberId || mb.id === memberId);
-              if (!m) return null;
-              return (
-                <div key={c._id || c.id || idx} className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
-                  <Avatar name={m.FullName} size={32} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium truncate text-slate-900">{m.FullName}</div>
-                    <div className="text-[11.5px] text-slate-500 mt-0.5">{fmtShort(ts)} at {fmtTime(ts)}</div>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-400">{fmtTime(ts)}</span>
+            ) : checkins.slice(0, 5).map((c) => (
+              <div key={c._id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
+                <Avatar name={c._memberName} size={32} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium truncate text-slate-900">{c._memberName}</div>
+                  <div className="text-[11.5px] text-slate-500 mt-0.5">{fmtShort(c.CheckIn)} at {fmtTime(c.CheckIn)}</div>
                 </div>
-              );
-            })}
+                <span className="text-[11px] font-mono text-slate-400">{fmtTime(c.CheckIn)}</span>
+              </div>
+            ))}
           </div>
         </div>
 

@@ -101,7 +101,7 @@ export default function App() {
           element={
             !isAdmin ? <Navigate to="/login" replace /> :
               <AdminLayout onLogout={handleLogout}>
-                <DashboardPage members={members} checkins={checkins} setAddMemberOpen={setAddMemberOpen} />
+                <DashboardPage setAddMemberOpen={setAddMemberOpen} />
                 {memberModal}
               </AdminLayout>
           }
