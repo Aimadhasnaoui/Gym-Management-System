@@ -34,9 +34,9 @@ export const deleteUser = cathFunction(async (req, res, next) => {
 export const Login = cathFunction(async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ Email: email });
-    if (!user) return next(new Error("Invalid credentials"));
+    if (!user) return next(new Error("No account found with this email address"));
     const isMatch = await user.matchPassword(password);
-    if (!isMatch) return next(new Error("Invalid credentials"));
+    if (!isMatch) return next(new Error("Incorrect password"));
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: '30d'
