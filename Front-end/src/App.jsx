@@ -59,8 +59,9 @@ export default function App() {
   };
 
   const handleAddMember = async (formData) => {
-    const newMember = await createMember(formData);
-    setMembers(prev => [newMember, ...prev]);
+    await createMember(formData);
+    const updated = await getMembers();
+    setMembers(updated);
   };
 
   const handleEditMember = async (id, formData) => {
