@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
 import CheckinPage from './pages/CheckinPage';
 import MemberPortal from './pages/MemberPortal';
+import SettingsPage from './pages/SettingsPage';
 import MemberProfilePage from './pages/MemberProfilePage';
 import CheckinMembre from './pages/CheckinMembre';
 
@@ -60,8 +61,9 @@ export default function App() {
   };
 
   const handleAddMember = async (formData) => {
-    const newMember = await createMember(formData);
-    setMembers(prev => [newMember, ...prev]);
+    await createMember(formData);
+    const updated = await getMembers();
+    setMembers(updated);
   };
 
   const handleEditMember = async (id, formData) => {
@@ -102,7 +104,7 @@ export default function App() {
           element={
             !isAdmin ? <Navigate to="/login" replace /> :
               <AdminLayout onLogout={handleLogout}>
-                <DashboardPage members={members} checkins={checkins} setAddMemberOpen={setAddMemberOpen} />
+                <DashboardPage setAddMemberOpen={setAddMemberOpen} />
                 {memberModal}
               </AdminLayout>
           }
@@ -159,6 +161,14 @@ export default function App() {
           element={
             !isMember ? <Navigate to="/login" replace /> :
               <MemberPortal memberId={auth.memberId} onLogout={handleLogout} />
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            !isMember ? <Navigate to="/login" replace /> :
+              <SettingsPage onLogout={handleLogout} />
           }
         />
 

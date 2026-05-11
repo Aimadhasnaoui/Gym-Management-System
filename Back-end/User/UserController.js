@@ -35,11 +35,11 @@ export const deleteUser = cathFunction(async (req, res, next) => {
 });
 
 export const Login = cathFunction(async (req, res, next) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ Email: email });
-  if (!user) return next(new Error("Invalid credentials"));
-  const isMatch = await user.matchPassword(password);
-  if (!isMatch) return next(new Error("Invalid credentials"));
+    const { email, password } = req.body;
+    const user = await User.findOne({ Email: email });
+    if (!user) return next(new Error("No account found with this email address"));
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) return next(new Error("Incorrect password"));
 
   const token = jwt.sign(
     { id: user._id, role: user.role },
@@ -105,3 +105,23 @@ export const Logout = (req, res) => {
   });
   res.status(200).json({ success: true });
 };
+export const changePassword = cathFunction(async (req, res, next) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword)
+        return next(new Error("Please provide both current and new password"));
+
+    if (newPassword.length < 6)
+        return next(new Error("New password must be at least 6 characters"));
+
+    const user = await User.findById(req.user.id);
+    if (!user) return next(new Error("User not found"));
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) return next(new Error("Current password is incorrect"));
+
+    user.password = newPassword;
+    await user.save(); // pre-save hook will hash the new password
+
+    res.status(200).json({ success: true, message: "Password updated successfully" });
+});

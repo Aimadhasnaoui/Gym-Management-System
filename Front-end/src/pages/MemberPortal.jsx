@@ -3,10 +3,12 @@ import { fmt, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import Calendar from '../components/Calendar';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/index';
 import { getCheckins } from '../api/checkins';
 
 export default function MemberPortal({ memberId, onLogout }) {
+  const navigate = useNavigate();
   const [member, setMember] = useState(null);
   const [myCheckins, setMyCheckins] = useState([]);
 
@@ -42,6 +44,13 @@ export default function MemberPortal({ memberId, onLogout }) {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-[13px] text-[#606066]">Member Portal</span>
+          <button
+            onClick={() => navigate('/settings')}
+            className="flex items-center gap-1.5 text-[12.5px] text-[#606066] bg-transparent border-0 cursor-pointer hover:text-sidebar-text transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" strokeWidth="1.5" /><path d="M10 3v1m0 12v1M3 10h1m12 0h1m-2.05-4.95-.7.7M5.75 14.25l-.7.7M14.25 14.25l.7.7M5.75 5.75l-.7-.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+            Settings
+          </button>
           <button
             onClick={onLogout}
             className="flex items-center gap-1.5 text-[12.5px] text-[#505054] bg-transparent border-0 cursor-pointer hover:text-sidebar-text transition-colors"
