@@ -92,3 +92,23 @@ export const Logout = (req, res) => {
     res.clearCookie('token', { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax' });
     res.status(200).json({ success: true });
 };
+export const changePassword = cathFunction(async (req, res, next) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword)
+        return next(new Error("Please provide both current and new password"));
+
+    if (newPassword.length < 6)
+        return next(new Error("New password must be at least 6 characters"));
+
+    const user = await User.findById(req.user.id);
+    if (!user) return next(new Error("User not found"));
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) return next(new Error("Current password is incorrect"));
+
+    user.password = newPassword;
+    await user.save(); // pre-save hook will hash the new password
+
+    res.status(200).json({ success: true, message: "Password updated successfully" });
+});
