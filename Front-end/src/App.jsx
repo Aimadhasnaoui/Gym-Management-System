@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage';
 import MembersPage from './pages/MembersPage';
 import CheckinPage from './pages/CheckinPage';
 import MemberPortal from './pages/MemberPortal';
+import SettingsPage from './pages/SettingsPage';
 import MemberProfilePage from './pages/MemberProfilePage';
 
 function AdminLayout({ children, onLogout }) {
@@ -159,6 +160,14 @@ export default function App() {
           element={
             !isMember ? <Navigate to="/login" replace /> :
               <MemberPortal memberId={auth.memberId} onLogout={handleLogout} />
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            !isMember ? <Navigate to="/login" replace /> :
+              <SettingsPage onLogout={handleLogout} />
           }
         />
 
