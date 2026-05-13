@@ -12,6 +12,13 @@ import CheckInRouter from "./CheckIn/CheckInRouter.js";
 import { Login, Me, Logout } from "./User/UserController.js";
 import { verifyToken } from "./utils/verifyToken.js";
 import { v4 as uuidv4 } from "uuid";
+import os from "os";
+
+// Get the real local network IP
+const networkInterfaces = os.networkInterfaces();
+const localIP = Object.values(networkInterfaces)
+  .flat()
+  .find((iface) => iface.family === "IPv4" && !iface.internal)?.address ?? "localhost";
 
 dotenv.config();
 
@@ -144,5 +151,5 @@ app.use((err, req, res, next) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`\nServer is running on:`);
   console.log(`  - Local:   http://localhost:${PORT}`);
-  console.log(`  - Network: http://192.168.1.13:${PORT}\n`);
+  console.log(`  - Network: http://${localIP}:${PORT}\n`);
 });
