@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fmt, fmtTime } from '../data/mockData';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
@@ -13,6 +14,7 @@ export default function CheckinPage({ members, checkins, onCheckin }) {
   const [toast, setToast] = useState(null);
   const [flashId, setFlashId] = useState(null);
   const [tab, setTab] = useState('checkin'); // 'checkin' | 'log'
+  const navigate = useNavigate();
 
   const filtered = query.length > 0
     ? members.filter(m => m.FullName.toLowerCase().includes(query.toLowerCase()))
@@ -72,6 +74,17 @@ export default function CheckinPage({ members, checkins, onCheckin }) {
             <div className="text-[22px] font-bold text-primary leading-none">{members.length}</div>
             <div className="text-[11px] text-muted uppercase tracking-[0.05em] mt-0.5">Members</div>
           </div>
+          {/* QR Check-in button */}
+          <button
+            onClick={() => navigate('/checkin/qr')}
+            className="flex flex-col items-center justify-center gap-1 bg-primary hover:bg-[#333] transition-colors border-0 rounded-[10px] px-4 py-2.5 cursor-pointer min-w-[64px] text-center"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" />
+              <path d="M14 14h2v2h-2zM18 14h3M14 18v3M18 18h3v3h-3z" />
+            </svg>
+            <div className="text-[11px] text-white/80 uppercase tracking-[0.05em]">QR Scan</div>
+          </button>
         </div>
       </div>
 
@@ -81,8 +94,8 @@ export default function CheckinPage({ members, checkins, onCheckin }) {
           <button
             onClick={() => setTab('checkin')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold border-0 cursor-pointer transition-all ${tab === 'checkin'
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-transparent text-muted hover:text-primary'
+              ? 'bg-primary text-white shadow-sm'
+              : 'bg-transparent text-muted hover:text-primary'
               }`}
           >
             <Icon name="checkin" size={14} color={tab === 'checkin' ? '#fff' : '#8a8a8a'} />
@@ -91,8 +104,8 @@ export default function CheckinPage({ members, checkins, onCheckin }) {
           <button
             onClick={() => setTab('log')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold border-0 cursor-pointer transition-all ${tab === 'log'
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-transparent text-muted hover:text-primary'
+              ? 'bg-primary text-white shadow-sm'
+              : 'bg-transparent text-muted hover:text-primary'
               }`}
           >
             <Icon name="clock" size={14} color={tab === 'log' ? '#fff' : '#8a8a8a'} />
@@ -140,8 +153,8 @@ export default function CheckinPage({ members, checkins, onCheckin }) {
                   <div
                     key={m._id}
                     className={`bg-surface border rounded-xl px-3.5 pt-[18px] pb-3.5 flex flex-col items-center gap-2.5 transition-all ${isFlashing ? 'border-green-300 bg-green-50' :
-                        alreadyIn ? 'border-green-200 bg-green-50/60' :
-                          'border-border hover:border-[#d0cdc8] hover:shadow-sm'
+                      alreadyIn ? 'border-green-200 bg-green-50/60' :
+                        'border-border hover:border-[#d0cdc8] hover:shadow-sm'
                       } ${expired ? 'opacity-45' : ''}`}
                     style={{ animationDelay: `${Math.min(i * 25, 250)}ms` }}
                   >

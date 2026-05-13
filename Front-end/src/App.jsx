@@ -174,7 +174,7 @@ export default function App() {
 
         <Route path="/" element={<Navigate to={isAdmin ? '/dashboard' : isMember ? '/portal' : '/login'} replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
-        <Route path="/Add/checking" element={<CheckinMembre></CheckinMembre>} />
+        <Route path="/checkin/qr" element={<CheckinMembre></CheckinMembre>} />
       </Routes>
     </BrowserRouter>
   );
