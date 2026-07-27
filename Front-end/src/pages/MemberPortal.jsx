@@ -5,7 +5,7 @@ import Avatar from '../components/Avatar';
 import Calendar from '../components/Calendar';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/index';
-import { getCheckins } from '../api/checkins';
+import { getMemberCheckins } from '../api/checkins';
 
 export default function MemberPortal({ memberId, onLogout }) {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function MemberPortal({ memberId, onLogout }) {
     if (!memberId) return;
     Promise.all([
       api.get(`/Member/${memberId}`).then(r => r.data.data),
-      getCheckins({ memberId }),
+      getMemberCheckins(memberId),
     ]).then(([m, c]) => { setMember(m); setMyCheckins(c); }).catch(console.error);
   }, [memberId]);
 

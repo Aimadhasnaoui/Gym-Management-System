@@ -3,10 +3,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 /**
- * Send a welcome email to a new member with their login credentials.
- * @param {{ to: string, fullName: string, email: string, password: string }} opts
+ * Send a welcome email to a new member with a one-time activation link.
+ * No password is ever sent by email.
+ * @param {{ to: string, fullName: string, activationUrl: string }} opts
  */
-export const sendWelcomeEmail = async ({ to, fullName, email, password }) => {
+export const sendWelcomeEmail = async ({ to, fullName, activationUrl }) => {
   // Transporter is created here (not at module load) so dotenv vars are ready
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -53,39 +54,21 @@ export const sendWelcomeEmail = async ({ to, fullName, email, password }) => {
                       Welcome, ${firstName}! 👋
                     </h1>
                     <p style="margin:0 0 24px;font-size:14px;color:#8a8a8a;line-height:1.6;">
-                      Your membership has been set up. You can now sign in to the member portal to view your plan, membership details, and attendance history.
-                    </p>
-
-                    <!-- Credentials box -->
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f3;border:1px solid #e8e8e6;border-radius:10px;margin-bottom:24px;">
-                      <tr>
-                        <td style="padding:20px 24px;">
-                          <p style="margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#8a8a8a;">Your login credentials</p>
-                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;">
-                            <tr>
-                              <td style="padding:6px 0;font-size:13px;color:#8a8a8a;width:90px;">Email</td>
-                              <td style="padding:6px 0;font-size:13px;font-weight:600;color:#1a1a1a;">${email}</td>
-                            </tr>
-                            <tr>
-                              <td style="padding:6px 0;font-size:13px;color:#8a8a8a;">Password</td>
-                              <td style="padding:6px 0;font-size:13px;font-weight:600;color:#1a1a1a;font-family:monospace;letter-spacing:0.04em;">${password}</td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <p style="margin:0 0 24px;font-size:13px;color:#8a8a8a;line-height:1.6;">
-                      For security, we recommend changing your password after your first login.
+                      Your membership has been set up. To finish, activate your account and choose your own password using the secure link below. For your security, the link expires in 24 hours.
                     </p>
 
                     <!-- CTA button -->
                     <a
-                      href="${process.env.FRONTEND_URL}/login"
+                      href="${activationUrl}"
                       style="display:inline-block;padding:12px 28px;background:oklch(0.62 0.17 145);color:#ffffff;text-decoration:none;border-radius:9px;font-size:14px;font-weight:600;"
                     >
-                      Sign in to Member Portal →
+                      Activate my account →
                     </a>
+
+                    <p style="margin:24px 0 0;font-size:12px;color:#8a8a8a;line-height:1.6;word-break:break-all;">
+                      If the button doesn't work, copy this link into your browser:<br />
+                      <span style="color:#1a1a1a;">${activationUrl}</span>
+                    </p>
                   </td>
                 </tr>
 

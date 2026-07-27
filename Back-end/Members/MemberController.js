@@ -2,23 +2,7 @@ import Member from "./Members.js";
 import User from "../User/User.js";
 import { cathFunction } from "../utils/CathFunction.js";
 import { sendWelcomeEmail } from "../utils/sendEmail.js";
-
-/** Generate a random readable password e.g. "Tz8#kR2m" */
-const generatePassword = () => {
-  const upper  = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower  = "abcdefghjkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const special = "#@!";
-  const all = upper + lower + digits + special;
-  let pwd = [
-    upper[Math.floor(Math.random() * upper.length)],
-    lower[Math.floor(Math.random() * lower.length)],
-    digits[Math.floor(Math.random() * digits.length)],
-    special[Math.floor(Math.random() * special.length)],
-  ];
-  for (let i = 0; i < 4; i++) pwd.push(all[Math.floor(Math.random() * all.length)]);
-  return pwd.sort(() => Math.random() - 0.5).join('');
-};
+import { createActivationToken } from "../utils/tokens.js";
 
 export const addMember = cathFunction(async (req, res, next) => {
   const { FullName, Email, phone, address, Plan, startDate, endDate } = req.body;
@@ -26,21 +10,26 @@ export const addMember = cathFunction(async (req, res, next) => {
   // 1 — Create the member
   const member = await Member.create({ FullName, Email, phone, address, Plan, startDate, endDate });
 
-  // 2 — Auto-create a User account with a temp password
-  const tempPassword = generatePassword();
+  // 2 — Auto-create a User account WITHOUT a password. The member sets their
+  //     own password through a one-time, time-limited activation link.
+  const { token, hash, expires } = createActivationToken();
   const user = await User.create({
     FullName,
     Email,
-    password: tempPassword,
     role: "member",
+    isActivated: false,
+    activationTokenHash: hash,
+    activationTokenExpires: expires,
   });
 
   // 3 — Link the user to the member
   member.userId = user._id;
   await member.save();
 
-  // 4 — Send welcome email (non-blocking — don't fail the request if email fails)
-  sendWelcomeEmail({ to: Email, fullName: FullName, email: Email, password: tempPassword })
+  // 4 — Email the activation link (non-blocking — don't fail the request if email fails)
+  const base = process.env.FRONTEND_URL?.replace(/\/$/, "") ?? "";
+  const activationUrl = `${base}/activate?uid=${user._id}&token=${token}`;
+  sendWelcomeEmail({ to: Email, fullName: FullName, activationUrl })
     .catch(err => console.error("Welcome email failed:", err.message));
 
   res.status(201).json({ success: true, data: member });

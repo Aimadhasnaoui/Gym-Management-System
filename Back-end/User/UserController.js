@@ -1,6 +1,9 @@
 import User from "./User.js";
 import Member from "../Members/Members.js";
 import { cathFunction } from "../utils/CathFunction.js";
+import { httpError } from "../utils/AppError.js";
+import { hashToken } from "../utils/tokens.js";
+import { recordLoginFailure, clearLoginAttempts } from "../utils/loginLockout.js";
 import jwt from "jsonwebtoken";
 
 export const addUser = cathFunction(async (req, res, next) => {
@@ -37,15 +40,25 @@ export const deleteUser = cathFunction(async (req, res, next) => {
 export const Login = cathFunction(async (req, res, next) => {
     const { email, password } = req.body;
     const user = await User.findOne({ Email: email });
-    if (!user) return next(new Error("No account found with this email address"));
+    if (!user) {
+      recordLoginFailure(email);
+      return next(httpError("No account found with this email address", 401));
+    }
+    if (!user.isActivated)
+      return next(httpError("Account not activated. Please use the activation link sent to your email.", 403));
     const isMatch = await user.matchPassword(password);
-    if (!isMatch) return next(new Error("Incorrect password"));
+    if (!isMatch) {
+      recordLoginFailure(email);
+      return next(httpError("Incorrect password", 401));
+    }
+    clearLoginAttempts(email);
 
   const token = jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
     {
-      expiresIn: "30d",
+      algorithm: "HS256",
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
     },
   );
 
@@ -54,7 +67,7 @@ export const Login = cathFunction(async (req, res, next) => {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? "none" : "lax",
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   const member =
@@ -124,4 +137,59 @@ export const changePassword = cathFunction(async (req, res, next) => {
     await user.save(); // pre-save hook will hash the new password
 
     res.status(200).json({ success: true, message: "Password updated successfully" });
+});
+
+// GET /auth/activation/:uid/:token — check a link is valid before showing the form.
+export const validateActivation = cathFunction(async (req, res, next) => {
+  const { uid, token } = req.params;
+  if (!/^[0-9a-fA-F]{24}$/.test(uid))
+    return next(httpError("Invalid or expired activation link", 400));
+
+  const user = await User.findById(uid).select(
+    "+activationTokenHash +activationTokenExpires",
+  );
+  if (
+    !user ||
+    user.isActivated ||
+    !user.activationTokenHash ||
+    !user.activationTokenExpires ||
+    user.activationTokenExpires.getTime() < Date.now() ||
+    user.activationTokenHash !== hashToken(token)
+  ) {
+    return next(httpError("Invalid or expired activation link", 400));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: { name: user.FullName, email: user.Email },
+  });
+});
+
+// POST /auth/set-password — { userId, token, password } — activate & set password.
+export const setPassword = cathFunction(async (req, res, next) => {
+  const { userId, token, password } = req.body;
+
+  const user = await User.findById(userId).select(
+    "+activationTokenHash +activationTokenExpires",
+  );
+  if (
+    !user ||
+    !user.activationTokenHash ||
+    !user.activationTokenExpires ||
+    user.activationTokenExpires.getTime() < Date.now() ||
+    user.activationTokenHash !== hashToken(token)
+  ) {
+    return next(httpError("Invalid or expired activation link", 400));
+  }
+
+  user.password = password; // hashed by the pre-save hook
+  user.isActivated = true;
+  user.activationTokenHash = undefined;
+  user.activationTokenExpires = undefined;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Password set successfully. You can now sign in.",
+  });
 });

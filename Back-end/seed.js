@@ -4,6 +4,7 @@ import User from './User/User.js';
 import Member from './Members/Members.js';
 import Plan from './Plans/Plans.js';
 import CheckIn from './CheckIn/Checkin.js';
+import { generateStrongPassword } from './utils/tokens.js';
 
 dotenv.config();
 
@@ -31,22 +32,23 @@ const seed = async () => {
   // --- Users ---
   // Admin is created separately; member users use their member email.
   // Each save() triggers the bcrypt pre-save hook — insertMany would bypass it.
+  const adminPassword = generateStrongPassword();
   const admin = await new User({
     FullName: 'Admin User',
     Email: 'admin@fitcore.com',
-    password: 'admin',
+    password: adminPassword,
     role: 'admin',
   }).save();
 
   const memberUsersData = [
-    { FullName: 'Alex Rivera',  Email: 'alex.rivera@example.com',  password: 'alex'   },
-    { FullName: 'Jordan Kim',   Email: 'jordan.kim@example.com',   password: 'jordan' },
-    { FullName: 'Sam Torres',   Email: 'sam.torres@example.com',   password: 'sam'    },
-    { FullName: 'Morgan Lee',   Email: 'morgan.lee@example.com',   password: 'morgan' },
-    { FullName: 'Casey Patel',  Email: 'casey.patel@example.com',  password: 'casey'  },
-    { FullName: 'Riley Chen',   Email: 'riley.chen@example.com',   password: 'riley'  },
-    { FullName: 'Drew Martin',  Email: 'drew.martin@example.com',  password: 'drew'   },
-    { FullName: 'Quinn Walsh',  Email: 'quinn.walsh@example.com',  password: 'quinn'  },
+    { FullName: 'Alex Rivera',  Email: 'alex.rivera@example.com',  password: generateStrongPassword() },
+    { FullName: 'Jordan Kim',   Email: 'jordan.kim@example.com',   password: generateStrongPassword() },
+    { FullName: 'Sam Torres',   Email: 'sam.torres@example.com',   password: generateStrongPassword() },
+    { FullName: 'Morgan Lee',   Email: 'morgan.lee@example.com',   password: generateStrongPassword() },
+    { FullName: 'Casey Patel',  Email: 'casey.patel@example.com',  password: generateStrongPassword() },
+    { FullName: 'Riley Chen',   Email: 'riley.chen@example.com',   password: generateStrongPassword() },
+    { FullName: 'Drew Martin',  Email: 'drew.martin@example.com',  password: generateStrongPassword() },
+    { FullName: 'Quinn Walsh',  Email: 'quinn.walsh@example.com',  password: generateStrongPassword() },
   ];
 
   const [uAlex, uJordan, uSam, uMorgan, uCasey, uRiley, uDrew, uQuinn] =
@@ -167,9 +169,10 @@ const seed = async () => {
   console.log('Created 31 check-ins');
 
   console.log('\n✓ Database seeded successfully!');
+  console.log('\n⚠  These are randomly generated for this seed — copy them now, they are not stored anywhere in plaintext.');
   console.log('\nAdmin login:');
-  console.log('  admin@fitcore.com  /  admin');
-  console.log('\nMember logins (email / first name):');
+  console.log(`  admin@fitcore.com  /  ${adminPassword}`);
+  console.log('\nMember logins (email / password):');
   memberUsersData.forEach(u => console.log(`  ${u.Email.padEnd(30)} / ${u.password}`));
 
   await mongoose.disconnect();

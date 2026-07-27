@@ -22,7 +22,8 @@ export default function SettingsPage({ onLogout }) {
     const e = {};
     if (!form.currentPassword) e.currentPassword = 'Current password is required';
     if (!form.newPassword) e.newPassword = 'New password is required';
-    else if (form.newPassword.length < 6) e.newPassword = 'Must be at least 6 characters';
+    else if (!(form.newPassword.length >= 10 && /[a-z]/.test(form.newPassword) && /[A-Z]/.test(form.newPassword) && /[0-9]/.test(form.newPassword)))
+      e.newPassword = 'At least 10 characters with upper, lower and a digit';
     if (!form.confirmPassword) e.confirmPassword = 'Please confirm your new password';
     else if (form.newPassword !== form.confirmPassword) e.confirmPassword = 'Passwords do not match';
     setErrors(e);
@@ -115,7 +116,7 @@ export default function SettingsPage({ onLogout }) {
                   type="password"
                   value={form.newPassword}
                   onChange={e => set('newPassword', e.target.value)}
-                  placeholder="Min. 6 characters"
+                  placeholder="Min. 10 chars, mixed case + digit"
                   className={`w-full px-3.5 py-[10px] border-[1.5px] rounded-lg text-[13.5px] outline-none bg-surface text-primary transition-colors ${errors.newPassword ? 'border-danger' : 'border-border focus:border-accent'
                     }`}
                 />

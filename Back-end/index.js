@@ -3,16 +3,34 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { doubleCsrf } from "csrf-csrf";
+import jwt from "jsonwebtoken";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { v4 as uuidv4 } from "uuid";
+import os from "os";
+
 import UserRouter from "./User/UserRouter.js";
 import MemberRouter from "./Members/MemberRouter.js";
 import PlanRouter from "./Plans/PlanRouter.js";
 import CheckInRouter from "./CheckIn/CheckInRouter.js";
-import { Login, Me, Logout } from "./User/UserController.js";
+import {
+  Login,
+  Me,
+  Logout,
+  validateActivation,
+  setPassword,
+} from "./User/UserController.js";
 import { verifyToken } from "./utils/verifyToken.js";
-import { v4 as uuidv4 } from "uuid";
-import os from "os";
+import { validate } from "./utils/validate.js";
+import { loginSchema, setPasswordSchema } from "./utils/validators.js";
+import { loginLockout } from "./utils/loginLockout.js";
+
+dotenv.config();
+
+const isProd = process.env.ProjectEnv === "production";
 
 // Get the real local network IP
 const networkInterfaces = os.networkInterfaces();
@@ -20,22 +38,16 @@ const localIP = Object.values(networkInterfaces)
   .flat()
   .find((iface) => iface.family === "IPv4" && !iface.internal)?.address ?? "localhost";
 
-dotenv.config();
-
 mongoose
   .connect(process.env.DatabaseConectionString)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.log(err));
 
 const app = express();
+// Trust the reverse proxy (nginx/Caddy/Cloudflare) so req.ip and `secure`
+// cookies are evaluated correctly in production.
+app.set("trust proxy", 1);
 const server = createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
 
 const PORT = process.env.PortProject || 5000;
 
@@ -44,6 +56,14 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ].filter(Boolean);
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 // ── Request Logger ──────────────────────────────────────────────
 const COLORS = {
@@ -72,7 +92,7 @@ const statusColor = (code) => {
   return COLORS.green;
 };
 
-app.use((req, res, next) => {
+const requestLogger = (req, res, next) => {
   const start = Date.now();
   const { method, url } = req;
   const methodClr = METHOD_COLORS[method] || COLORS.white;
@@ -92,31 +112,101 @@ app.use((req, res, next) => {
   });
 
   next();
-});
+};
 // ────────────────────────────────────────────────────────────────
 
-// WebSocket
+// ── WebSocket: authenticate handshake, validate events ──────────
+const parseCookies = (str = "") =>
+  str.split(";").reduce((acc, part) => {
+    const idx = part.indexOf("=");
+    if (idx > -1)
+      acc[part.slice(0, idx).trim()] = decodeURIComponent(part.slice(idx + 1).trim());
+    return acc;
+  }, {});
+
+io.use((socket, next) => {
+  try {
+    const token =
+      socket.handshake.auth?.token ||
+      parseCookies(socket.handshake.headers?.cookie).token;
+    if (!token) return next(new Error("Unauthorized"));
+    socket.user = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
+    next();
+  } catch {
+    next(new Error("Unauthorized"));
+  }
+});
+
+// Short-lived, single-use QR nonces so a QR can't be replayed.
+const qrNonces = new Map(); // id -> expiry (ms)
+const QR_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const sweepNonces = () => {
+  const now = Date.now();
+  for (const [id, exp] of qrNonces) if (exp < now) qrNonces.delete(id);
+};
+
 io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
+  // Only the gym display (kiosk / admin) may host the board.
+  socket.on("join-display", () => {
+    if (socket.user?.role !== "admin") return;
+    socket.join("display");
+  });
 
-  socket.on("join-display", () => socket.join("display"));
-
+  // Any authenticated user (a member's app) may request a QR to be shown on
+  // the display. Each QR carries a single-use, expiring nonce.
   socket.on("requestQR", () => {
+    sweepNonces();
     const qrId = uuidv4();
-    const qrUrl = `checkin:${qrId}`;
-    io.to("display").emit("newQR", { url: qrUrl, id: qrId });
+    qrNonces.set(qrId, Date.now() + QR_TTL_MS);
+    io.to("display").emit("newQR", { url: `checkin:${qrId}`, id: qrId });
   });
 
   socket.on("validate_checkin", (data) => {
-    console.log("QR Code scanned:", data);
-    io.to("display").emit("welcomMsg", { data });
+    if (!data || typeof data !== "object") return; // reject malformed payloads
+    const id = typeof data.id === "string" ? data.id : null;
+    if (!id) return; // require the scanned nonce
+    const exp = qrNonces.get(id);
+    if (!exp || exp < Date.now()) return; // unknown, expired or replayed nonce
+    qrNonces.delete(id); // single-use
+    console.log(`check-in scan validated: nonce=${id} by user=${socket.user?.id}`);
+    io.to("display").emit("welcomMsg", { data, userId: socket.user?.id });
   });
 });
 
 io.on("error", (error) => console.log("WebSocket error:", error));
 
-app.use((req, res, next) => { req.io = io; next(); });
+// ── CSRF (double-submit cookie) ─────────────────────────────────
+const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
+  getSecret: () => process.env.CSRF_SECRET || process.env.JWT_SECRET,
+  getSessionIdentifier: (req) => req.cookies?.token || req.ip || "anonymous",
+  cookieName: isProd ? "__Host-fitcore.x-csrf-token" : "fitcore.x-csrf-token",
+  cookieOptions: {
+    httpOnly: true,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+    path: "/",
+  },
+  size: 32,
+  getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"],
+});
 
+// Bearer-authenticated (mobile) requests aren't cookie-driven → not CSRF-able.
+const csrfProtect = (req, res, next) => {
+  if (req.headers.authorization?.startsWith("Bearer")) return next();
+  return doubleCsrfProtection(req, res, next);
+};
+
+// ── Middleware pile ─────────────────────────────────────────────
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    hsts: isProd ? { maxAge: 15552000, includeSubDomains: true } : false,
+  })
+);
+app.use(requestLogger);
+app.use((req, res, next) => { req.io = io; next(); });
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -126,16 +216,40 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 
-app.post("/Login", Login);
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
+// Hand out a CSRF token (GET is not CSRF-protected). Call after login.
+app.get("/csrf-token", (req, res) => {
+  res.status(200).json({ csrfToken: generateCsrfToken(req, res) });
+});
+
+// ── Auth ────────────────────────────────────────────────────────
+app.post("/Login", authLimiter, loginLockout, validate(loginSchema), Login);
 app.get("/auth/me", verifyToken, Me);
 app.post("/auth/logout", Logout);
-app.use("/User", verifyToken, UserRouter);
-app.use("/Member", verifyToken, MemberRouter);
-app.use("/Plan", verifyToken, PlanRouter);
-app.use("/CheckIn", verifyToken, CheckInRouter);
+app.get("/auth/activation/:uid/:token", authLimiter, validateActivation);
+app.post("/auth/set-password", authLimiter, validate(setPasswordSchema), setPassword);
+
+// ── Protected resources (CSRF enforced on cookie-based writes) ──
+app.use("/User", verifyToken, csrfProtect, UserRouter);
+app.use("/Member", verifyToken, csrfProtect, MemberRouter);
+app.use("/Plan", verifyToken, csrfProtect, PlanRouter);
+app.use("/CheckIn", verifyToken, csrfProtect, CheckInRouter);
 
 app.all(/.*/, (req, res, next) => {
   const err = new Error(`${req.url} : can't find this url`);

@@ -15,6 +15,7 @@ import MemberPortal from './pages/MemberPortal';
 import SettingsPage from './pages/SettingsPage';
 import MemberProfilePage from './pages/MemberProfilePage';
 import CheckinMembre from './pages/CheckinMembre';
+import ActivatePage from './pages/ActivatePage';
 
 function AdminLayout({ children, onLogout }) {
   return (
@@ -171,6 +172,8 @@ export default function App() {
               <SettingsPage onLogout={handleLogout} />
           }
         />
+
+        <Route path="/activate" element={<ActivatePage />} />
 
         <Route path="/" element={<Navigate to={isAdmin ? '/dashboard' : isMember ? '/portal' : '/login'} replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />

@@ -51,10 +51,11 @@ export default function LoginPage({ onLogin }) {
         {/* Demo credentials — pinned to bottom */}
         <div className="bg-[#1f1f22] rounded-[10px] px-4 py-3.5">
           <p className="text-[11px] font-semibold tracking-[0.04em] uppercase text-[#505056] mb-2">
-            Demo credentials
+            Credentials
           </p>
-          <p className="text-[12px] text-[#606066] mb-1">Admin: admin@fitcore.com / admin</p>
-          <p className="text-[12px] text-[#606066]">Member: morgan.lee@example.com / morgan</p>
+          <p className="text-[12px] text-[#606066]">
+            Admin credentials are printed once when you run the database seed. Members activate their own account via the email link.
+          </p>
         </div>
       </div>
 
