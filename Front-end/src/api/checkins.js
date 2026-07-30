@@ -16,3 +16,6 @@ export const getMemberCheckins = (memberId) =>
 
 export const createCheckin = (memberId) =>
     api.post('/CheckIn', { MemberId: memberId }).then(r => normalize(r.data.data));
+
+// Admin-only. Returns { id, url, expiresAt } for the check-in display.
+export const getQrCode = () => api.get('/CheckIn/qr').then(r => r.data.data);

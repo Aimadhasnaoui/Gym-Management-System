@@ -1,11 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCode } from "react-qr-code";
 import socket from "../../Websocket";
+import { getQrCode } from '../api/checkins';
+
+const REFRESH_MS = 60_000; // rotate the displayed code
+const RETRY_MS = 5_000;    // after a failed fetch
 
 export default function CheckinMembre() {
   const [isConnected, setIsConnected] = useState(false);
-  const [qrValue, setQrValue] = useState(null);
+  const [qr, setQr] = useState(null);          // { id, url, expiresAt }
+  const [qrFailed, setQrFailed] = useState(false);
+  const qrRef = useRef(null);                  // mirror of `qr` for timer callbacks
+  const welcomeTimer = useRef(null);
   const [welcomMsg, setWelcomMsg] = useState(null);
   const [QrScanned, setQrScanned] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -18,26 +25,81 @@ export default function CheckinMembre() {
     return () => clearInterval(t);
   }, []);
 
+  // QR lifecycle — deliberately knows nothing about the socket, so a dead
+  // socket costs the welcome animation but never the code on screen.
   useEffect(() => {
-    if (socket.connected) { setIsConnected(true); socket.emit("join-display"); }
-    socket.connect();
-    socket.on("connect", () => { setIsConnected(true); socket.emit("join-display"); });
-    socket.on("newQR", (data) => setQrValue(data.url));
-    socket.on("welcomMsg", (payload) => {
+    let cancelled = false;
+    let inFlight = false;
+    let retry = null;
+
+    const load = async () => {
+      if (inFlight) return; // a slow response plus a tick must not mint two codes
+      inFlight = true;
+      try {
+        const data = await getQrCode();
+        if (cancelled) return;
+        qrRef.current = data;
+        setQr(data);
+        setQrFailed(false);
+        clearTimeout(retry);
+        retry = null;
+      } catch {
+        if (cancelled) return;
+        setQrFailed(true); // keep whatever is already on screen
+        clearTimeout(retry);
+        retry = setTimeout(load, RETRY_MS);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    load();
+    const tick = setInterval(load, REFRESH_MS);
+
+    // Browsers throttle or freeze timers in hidden tabs and across sleep, so a
+    // woken kiosk could otherwise sit on a long-dead code.
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!qrRef.current || qrRef.current.expiresAt <= Date.now()) load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      cancelled = true;
+      clearInterval(tick);
+      clearTimeout(retry);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  // Overlay lifecycle — the socket's only remaining job on this screen.
+  useEffect(() => {
+    const onConnect = () => { setIsConnected(true); socket.emit("join-display"); };
+    const onDisconnect = () => setIsConnected(false);
+    const onWelcome = (payload) => {
       const { type, name, message } = payload.data;
       setWelcomMsg(name);
       setQrScanned(true);
       setIsError(type === "error");
       setErrorMsg(type === "error" ? message : null);
-      setTimeout(() => {
+      clearTimeout(welcomeTimer.current);
+      welcomeTimer.current = setTimeout(() => {
         setQrScanned(false); setWelcomMsg(null);
-        setIsError(false); setErrorMsg(null); setQrValue(null);
+        setIsError(false); setErrorMsg(null);
+        // The displayed QR is still inside its TTL — do NOT clear it here.
       }, 4000);
-    });
-    socket.on("disconnect", () => setIsConnected(false));
+    };
+
+    if (socket.connected) onConnect();
+    socket.connect();
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("welcomMsg", onWelcome);
     return () => {
-      socket.off("connect"); socket.off("disconnect");
-      socket.off("newQR"); socket.off("welcomMsg");
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("welcomMsg", onWelcome);
+      clearTimeout(welcomeTimer.current);
     };
   }, []);
 
@@ -80,14 +142,7 @@ export default function CheckinMembre() {
       {/* Main card */}
       <div className="bg-surface border border-border rounded-2xl p-10 flex flex-col items-center gap-6 w-[400px] shadow-sm">
 
-        {!isConnected ? (
-          /* Connecting */
-          <div className="flex flex-col items-center gap-4 py-6">
-            <div className="w-10 h-10 rounded-full border-2 border-border border-t-accent animate-spin" />
-            <p className="text-[13px] font-mono text-muted">Connecting{dots}</p>
-          </div>
-
-        ) : QrScanned ? (
+        {QrScanned ? (
           /* Scan result */
           <div className="flex flex-col items-center gap-4 py-4 animate-fade-up">
             <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isError ? 'bg-danger-light' : 'bg-accent-light'
@@ -114,21 +169,34 @@ export default function CheckinMembre() {
             </div>
           </div>
 
-        ) : qrValue ? (
+        ) : qr ? (
           /* QR code */
           <>
             <p className="text-[13px] font-medium text-muted text-center">Scan to check in</p>
             <div className="p-4 bg-white rounded-xl border border-border">
-              <QRCode size={220} value={qrValue} />
+              <QRCode size={220} value={qr.url} />
             </div>
-            <p className="text-[11px] font-mono text-muted text-center">Refreshes after each scan</p>
+            <p className="text-[11px] font-mono text-muted text-center">
+              {qrFailed ? 'Reconnecting…' : 'Refreshes automatically'}
+            </p>
           </>
 
+        ) : qrFailed ? (
+          /* First fetch failed — nothing to show yet */
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="w-10 h-10 rounded-full bg-danger-light flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.48 0.16 25)" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" />
+              </svg>
+            </div>
+            <p className="text-[13px] font-mono text-muted">Can't reach server{dots}</p>
+          </div>
+
         ) : (
-          /* Waiting for QR */
+          /* First load */
           <div className="flex flex-col items-center gap-4 py-6">
             <div className="w-10 h-10 rounded-full border-2 border-border border-t-accent animate-spin" />
-            <p className="text-[13px] font-mono text-muted">Waiting for QR{dots}</p>
+            <p className="text-[13px] font-mono text-muted">Loading{dots}</p>
           </div>
         )}
       </div>
