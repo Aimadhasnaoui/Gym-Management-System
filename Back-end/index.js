@@ -9,7 +9,6 @@ import { doubleCsrf } from "csrf-csrf";
 import jwt from "jsonwebtoken";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { v4 as uuidv4 } from "uuid";
 import os from "os";
 
 import UserRouter from "./User/UserRouter.js";
@@ -27,6 +26,7 @@ import { verifyToken } from "./utils/verifyToken.js";
 import { validate } from "./utils/validate.js";
 import { loginSchema, setPasswordSchema } from "./utils/validators.js";
 import { loginLockout } from "./utils/loginLockout.js";
+import { isValidNonce } from "./utils/qrNonces.js";
 
 dotenv.config();
 
@@ -139,14 +139,6 @@ io.use((socket, next) => {
   }
 });
 
-// Short-lived, single-use QR nonces so a QR can't be replayed.
-const qrNonces = new Map(); // id -> expiry (ms)
-const QR_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const sweepNonces = () => {
-  const now = Date.now();
-  for (const [id, exp] of qrNonces) if (exp < now) qrNonces.delete(id);
-};
-
 io.on("connection", (socket) => {
   // Only the gym display (kiosk / admin) may host the board.
   socket.on("join-display", () => {
@@ -154,22 +146,12 @@ io.on("connection", (socket) => {
     socket.join("display");
   });
 
-  // Any authenticated user (a member's app) may request a QR to be shown on
-  // the display. Each QR carries a single-use, expiring nonce.
-  socket.on("requestQR", () => {
-    sweepNonces();
-    const qrId = uuidv4();
-    qrNonces.set(qrId, Date.now() + QR_TTL_MS);
-    io.to("display").emit("newQR", { url: `checkin:${qrId}`, id: qrId });
-  });
-
   socket.on("validate_checkin", (data) => {
     if (!data || typeof data !== "object") return; // reject malformed payloads
     const id = typeof data.id === "string" ? data.id : null;
     if (!id) return; // require the scanned nonce
-    const exp = qrNonces.get(id);
-    if (!exp || exp < Date.now()) return; // unknown, expired or replayed nonce
-    qrNonces.delete(id); // single-use
+    // Read-only: the displayed code stays valid for everyone else in line.
+    if (!isValidNonce(id)) return; // unknown or expired nonce
     console.log(`check-in scan validated: nonce=${id} by user=${socket.user?.id}`);
     io.to("display").emit("welcomMsg", { data, userId: socket.user?.id });
   });

@@ -1,5 +1,6 @@
 import CheckIn from "./Checkin.js";
 import { cathFunction } from "../utils/CathFunction.js";
+import { issueNonce } from "../utils/qrNonces.js";
 
 export const addCheckIn = cathFunction(async (req, res, next) => {
   // const existingCheckin = await CheckIn.findOne({
@@ -67,4 +68,9 @@ export const deleteCheckIn = cathFunction(async (req, res, next) => {
   res
     .status(200)
     .json({ success: true, message: "Check-in deleted successfully" });
+});
+
+// The check-in display polls this to keep a fresh, scannable code on screen.
+export const getQrCode = cathFunction(async (req, res) => {
+  res.status(200).json({ success: true, data: issueNonce() });
 });

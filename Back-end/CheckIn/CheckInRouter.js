@@ -6,6 +6,7 @@ import {
   getCheckIn,
   getCheckInById,
   getCheckInByMemberId,
+  getQrCode,
 } from "./ChekInController.js";
 import { authorize, authorizeSelfOrAdmin, authorizeCheckInCreate } from "../utils/verifyToken.js";
 import { validate } from "../utils/validate.js";
@@ -18,6 +19,10 @@ router
   // Members may check IN themselves; admins may create for anyone.
   .post(validate(checkInCreateSchema), authorizeCheckInCreate, addCheckIn)
   .get(authorize("admin"), getCheckIn);
+
+// MUST stay above "/:id" — Express matches in registration order, and declared
+// after it this would bind as :id = "qr" and blow up on the ObjectId cast.
+router.route("/qr").get(authorize("admin"), getQrCode);
 
 router
   .route("/:id")
